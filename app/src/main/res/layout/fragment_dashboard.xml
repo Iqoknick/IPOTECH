@@ -32,32 +32,38 @@
                     android:layout_height="wrap_content"
                     android:layout_margin="4dp"
                     android:layout_weight="1"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    app:cardBackgroundColor="@color/btn_active_off"
+                    app:cardCornerRadius="4dp"
+                    app:cardElevation="6dp"
+                    app:strokeColor="@color/industrial_stroke"
+                    app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:padding="16dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="sans-serif-condensed"
-                            android:letterSpacing="0.1"
+                            android:letterSpacing="0.15"
                             android:text="TEMPERATURE"
-                            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                            android:textColor="@color/industrial_text_inactive"
+                            android:textSize="11sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/tv_temperature"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
                             android:fontFamily="monospace"
                             android:text="0.0°C"
-                            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
+                            android:textColor="@color/led_on"
+                            android:textSize="28sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -67,32 +73,38 @@
                     android:layout_height="wrap_content"
                     android:layout_margin="4dp"
                     android:layout_weight="1"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    app:cardBackgroundColor="@color/btn_active_off"
+                    app:cardCornerRadius="4dp"
+                    app:cardElevation="6dp"
+                    app:strokeColor="@color/industrial_stroke"
+                    app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp">
+                        android:padding="16dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="sans-serif-condensed"
-                            android:letterSpacing="0.1"
+                            android:letterSpacing="0.15"
                             android:text="OVEN COUNTDOWN"
-                            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                            android:textColor="@color/industrial_text_inactive"
+                            android:textSize="11sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/tv_oven_countdown"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
                             android:fontFamily="monospace"
-                            android:text="00:00:00"
-                            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+                            android:text="Ready"
+                            android:textColor="@color/led_on"
+                            android:textSize="22sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -102,32 +114,38 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardBackgroundColor="@color/btn_active_off"
+                app:cardCornerRadius="4dp"
+                app:cardElevation="6dp"
+                app:strokeColor="@color/industrial_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="12dp">
+                    android:padding="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="sans-serif-condensed"
-                        android:letterSpacing="0.1"
+                        android:letterSpacing="0.15"
                         android:text="CONVEYOR RUN TIMER"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                        android:textColor="@color/industrial_text_inactive"
+                        android:textSize="11sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tv_conveyor_timer"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
                         android:fontFamily="monospace"
                         android:text="00:00:00"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+                        android:textColor="@color/led_on"
+                        android:textSize="28sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
