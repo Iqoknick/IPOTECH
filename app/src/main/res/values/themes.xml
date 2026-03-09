@@ -1,0 +1,50 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.IPOTech" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/primary_teal</item>
+        <item name="colorPrimaryVariant">@color/primary_dark_teal</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/accent_green</item>
+        <item name="colorSecondaryVariant">@color/accent_green</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">@color/primary_dark_teal</item>
+        <!-- Customize your theme here. -->
+        <item name="android:windowBackground">@color/background_light</item>
+    </style>
+
+    <style name="ShapeAppearance.IPOTech.LeftRounded" parent="ShapeAppearance.MaterialComponents.SmallComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">20dp</item>
+        <item name="cornerSizeTopRight">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <style name="ShapeAppearance.IPOTech.RightRounded" parent="ShapeAppearance.MaterialComponents.SmallComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">20dp</item>
+        <item name="cornerSizeTopLeft">0dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+    </style>
+
+    <!-- Toggle button styles with better contrast -->
+    <style name="Widget.IPOTech.Button.Toggle.On" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="backgroundTint">@color/selector_toggle_on</item>
+        <item name="android:textColor">@color/selector_toggle_on_text</item>
+        <item name="strokeColor">@color/toggle_stroke</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.IPOTech.LeftRounded</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Widget.IPOTech.Button.Toggle.Off" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="backgroundTint">@color/selector_toggle_off</item>
+        <item name="android:textColor">@color/selector_toggle_off_text</item>
+        <item name="strokeColor">@color/toggle_stroke</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.IPOTech.RightRounded</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

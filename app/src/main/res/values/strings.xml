@@ -1,0 +1,38 @@
+<resources>
+    <string name="app_name">IPOTech SYSTEM</string>
+    <string name="nav_dashboard">Monitoring Dashboard</string>
+    <string name="nav_scheduler">Conveyor Scheduler</string>
+    <string name="title_dashboard">IPOTech.</string>
+    <string name="subtitle_dashboard">SYSTEM</string>
+    <string name="menu_label">MENU</string>
+
+    <string name="temperature_title">TEMPERATURE</string>
+    <string name="oven_countdown_title">OVEN COUNTDOWN</string>
+    <string name="conveyor_run_title">CONVEYOR RUN TIMER</string>
+
+    <string name="device_control">DEVICE CONTROL</string>
+    <string name="heater">HEATER</string>
+    <string name="conveyor">CONVEYOR</string>
+    <string name="pulverizer">PULVERIZER</string>
+
+    <string name="btn_on">ON</string>
+    <string name="btn_off">OFF</string>
+    <string name="btn_exit">EXIT SYSTEM</string>
+
+    <string name="activity_log">ACTIVITY LOG</string>
+
+    <string name="scheduler_title">CONVEYOR SCHEDULER</string>
+    <string name="morning_schedule">MORNING SCHEDULE</string>
+    <string name="evening_schedule">EVENING SCHEDULE</string>
+    <string name="start_time">START TIME</string>
+    <string name="end_time">END TIME</string>
+    <string name="run_duration">RUN DURATION (MIN)</string>
+    <string name="enable_schedule">ENABLE SCHEDULE</string>
+    <string name="date_range">DATE RANGE</string>
+
+    <string name="master_enable">MASTER SCHEDULE ENABLE</string>
+    <string name="days_of_week">ACTIVE DAYS</string>
+    <string name="status_standby">STATUS: STANDBY</string>
+    <string name="status_running">STATUS: ACTIVE &amp; RUNNING</string>
+    <string name="status_disabled">STATUS: SYSTEM DISABLED</string>
+</resources>

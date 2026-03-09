@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/nav_dashboard">
+
+    <fragment
+        android:id="@+id/nav_dashboard"
+        android:name="com.example.ipotech.DashboardFragment"
+        android:label="Monitoring Dashboard"
+        tools:layout="@layout/fragment_dashboard" />
+
+    <fragment
+        android:id="@+id/nav_scheduler"
+        android:name="com.example.ipotech.SchedulerFragment"
+        android:label="Conveyor Scheduler"
+        tools:layout="@layout/fragment_scheduler" />
+</navigation>

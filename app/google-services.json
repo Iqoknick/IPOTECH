@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "663976661050",
+    "firebase_url": "https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "layer-eb465",
+    "storage_bucket": "layer-eb465.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:663976661050:android:b75a88905315da59d42503",
+        "android_client_info": {
+          "package_name": "com.example.ipotech"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_ZlLH0tFkZJ0DzXIeGLZP_ZOz3UhLng8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

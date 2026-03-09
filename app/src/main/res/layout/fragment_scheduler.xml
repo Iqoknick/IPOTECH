@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light">
+
+    <!-- Scrollable content area -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/btn_save_schedule"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp"
+                android:fontFamily="sans-serif-condensed"
+                android:text="CONVEYOR SCHEDULER"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
+                android:textStyle="bold" />
+
+            <!-- System Status Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/primary_teal"
+                app:cardCornerRadius="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/tv_system_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:text="STATUS: STANDBY"
+                        android:textColor="@android:color/white"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_last_modified"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="monospace"
+                        android:text="Last Sync: ---"
+                        android:textColor="@android:color/white"
+                        android:textSize="10sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Master Switch Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="sans-serif-condensed"
+                        android:text="MASTER SCHEDULE ENABLE"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_master"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Date Range Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-condensed"
+                        android:text="DATE RANGE"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_date_range_picker"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif-condensed"
+                        android:text="SELECT DATE RANGE" />
+
+                    <TextView
+                        android:id="@+id/tv_selected_date_range"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="monospace"
+                        android:text="No range selected"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                        android:textColor="@color/primary_teal" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Active Days Card (Futuristic Modular Tiles with Gaps) -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-condensed"
+                        android:text="ACTIVE DAYS"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                        android:textStyle="bold" />
+
+                    <!-- Using a simple LinearLayout to allow gaps between buttons -->
+                    <LinearLayout
+                        android:id="@+id/layout_days"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal"
+                        android:weightSum="7">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_sun"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_margin="3dp"
+                            android:text="S"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:padding="0dp"
+                            android:checkable="true"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_teal" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_mon"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_margin="3dp"
+                            android:text="M"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:padding="0dp"
+                            android:checkable="true"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_teal" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_tue"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_margin="3dp"
+                            android:text="T"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:padding="0dp"
+                            android:checkable="true"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_teal" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_wed"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_margin="3dp"
+                            android:text="W"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:padding="0dp"
+                            android:checkable="true"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_teal" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_thu"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_margin="3dp"
+                            android:text="T"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:padding="0dp"
+                            android:checkable="true"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_teal" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_fri"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_margin="3dp"
+                            android:text="F"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:padding="0dp"
+                            android:checkable="true"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_teal" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_sat"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_margin="3dp"
+                            android:text="S"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:padding="0dp"
+                            android:checkable="true"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="@color/primary_teal" />
+
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Morning Schedule Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerVertical="true"
+                            android:fontFamily="sans-serif-condensed"
+                            android:text="MORNING SCHEDULE"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                            android:textStyle="bold" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_morning"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true" />
+                    </RelativeLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_morning_start"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="monospace"
+                        android:text="START TIME: 08:00 AM"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+                        android:textColor="@color/primary_teal" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="RUN DURATION (MIN)"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_morning_duration"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:inputType="number" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Evening Schedule Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerVertical="true"
+                            android:fontFamily="sans-serif-condensed"
+                            android:text="EVENING SCHEDULE"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                            android:textStyle="bold" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_afternoon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true" />
+                    </RelativeLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_afternoon_start"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="monospace"
+                        android:text="START TIME: 05:00 PM"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+                        android:textColor="@color/primary_teal" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="RUN DURATION (MIN)"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_afternoon_duration"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:inputType="number" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Sticky Save Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_save_schedule"
+        android:layout_width="0dp"
+        android:layout_height="65dp"
+        android:layout_margin="12dp"
+        android:fontFamily="sans-serif-condensed"
+        android:text="SAVE SCHEDULE"
+        android:textStyle="bold"
+        app:cornerRadius="16dp"
+        app:elevation="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

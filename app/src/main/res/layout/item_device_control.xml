@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="4dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <View
+            android:id="@+id/status_indicator"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:background="@drawable/circle_indicator"
+            android:backgroundTint="@color/status_idle" />
+
+        <TextView
+            android:id="@+id/tv_device_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="Device Name"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+            android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/toggle_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            app:selectionRequired="true">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_on"
+                style="@style/Widget.IPOTech.Button.Toggle.On"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:minWidth="72dp"
+                android:text="@string/btn_on"
+                android:textAllCaps="true" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_off"
+                style="@style/Widget.IPOTech.Button.Toggle.Off"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:minWidth="72dp"
+                android:text="@string/btn_off"
+                android:textAllCaps="true" />
+
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
