@@ -1,6 +1,9 @@
 package com.example.ipotech
 
+import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.navigation.findNavController
@@ -54,6 +57,16 @@ class MainActivity : AppCompatActivity() {
 
         // Test Mode: Start background worker immediately without Auth
         startScheduleWorker()
+        
+        // Exclude left edge from system back gesture to allow drawer swipe
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            binding.drawerLayout.post {
+                val exclusionRects = listOf(
+                    Rect(0, 0, 50, binding.drawerLayout.height)
+                )
+                binding.drawerLayout.systemGestureExclusionRects = exclusionRects
+            }
+        }
     }
 
     private fun startScheduleWorker() {
