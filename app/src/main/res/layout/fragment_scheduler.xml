@@ -27,8 +27,10 @@
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="12dp"
                 android:fontFamily="sans-serif-condensed"
+                android:letterSpacing="0.15"
                 android:text="CONVEYOR SCHEDULER"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
+                android:textColor="@color/btn_active_off"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <!-- System Status Card -->
@@ -38,8 +40,11 @@
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
                 android:layout_marginBottom="16dp"
-                app:cardBackgroundColor="@color/primary_teal"
-                app:cardCornerRadius="12dp">
+                app:cardBackgroundColor="@color/btn_active_off"
+                app:cardCornerRadius="4dp"
+                app:cardElevation="6dp"
+                app:strokeColor="@color/led_on"
+                app:strokeWidth="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -53,8 +58,10 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="monospace"
+                        android:letterSpacing="0.1"
                         android:text="STATUS: STANDBY"
-                        android:textColor="@android:color/white"
+                        android:textColor="@color/led_on"
+                        android:textSize="16sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -64,8 +71,8 @@
                         android:layout_marginTop="4dp"
                         android:fontFamily="monospace"
                         android:text="Last Sync: ---"
-                        android:textColor="@android:color/white"
-                        android:textSize="10sp" />
+                        android:textColor="@color/industrial_text_inactive"
+                        android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -74,12 +81,16 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                app:cardBackgroundColor="@color/btn_active_off"
+                app:cardCornerRadius="4dp"
+                app:cardElevation="4dp"
+                app:strokeColor="@color/industrial_stroke"
+                app:strokeWidth="1dp">
 
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:minHeight="56dp"
                     android:padding="16dp">
 
                     <TextView
@@ -87,15 +98,20 @@
                         android:layout_height="wrap_content"
                         android:layout_centerVertical="true"
                         android:fontFamily="sans-serif-condensed"
+                        android:letterSpacing="0.05"
                         android:text="MASTER SCHEDULE ENABLE"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp"
                         android:textStyle="bold" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/switch_master"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true" />
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        app:thumbTint="@color/selector_switch_thumb"
+                        app:trackTint="@color/selector_switch_track" />
                 </RelativeLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -104,8 +120,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                app:cardBackgroundColor="@color/btn_active_off"
+                app:cardCornerRadius="4dp"
+                app:cardElevation="4dp"
+                app:strokeColor="@color/industrial_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -117,39 +136,51 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="sans-serif-condensed"
+                        android:letterSpacing="0.05"
                         android:text="DATE RANGE"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp"
                         android:textStyle="bold" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_date_range_picker"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_height="52dp"
+                        android:layout_marginTop="12dp"
                         android:fontFamily="sans-serif-condensed"
-                        android:text="SELECT DATE RANGE" />
+                        android:letterSpacing="0.05"
+                        android:text="SELECT DATE RANGE"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp"
+                        app:backgroundTint="@color/industrial_stroke"
+                        app:cornerRadius="4dp"
+                        app:strokeColor="@color/industrial_text_inactive"
+                        app:strokeWidth="1dp" />
 
                     <TextView
                         android:id="@+id/tv_selected_date_range"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="12dp"
                         android:fontFamily="monospace"
                         android:text="No range selected"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                        android:textColor="@color/primary_teal" />
+                        android:textColor="@color/led_on"
+                        android:textSize="14sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Active Days Card (Futuristic Modular Tiles with Gaps) -->
+            <!-- Active Days Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                app:cardBackgroundColor="@color/btn_active_off"
+                app:cardCornerRadius="4dp"
+                app:cardElevation="4dp"
+                app:strokeColor="@color/industrial_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -161,11 +192,12 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="sans-serif-condensed"
+                        android:letterSpacing="0.05"
                         android:text="ACTIVE DAYS"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp"
                         android:textStyle="bold" />
 
-                    <!-- Using a simple LinearLayout to allow gaps between buttons -->
                     <LinearLayout
                         android:id="@+id/layout_days"
                         android:layout_width="match_parent"
@@ -178,106 +210,120 @@
                             android:id="@+id/btn_sun"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="44dp"
                             android:layout_weight="1"
-                            android:layout_margin="3dp"
+                            android:layout_margin="2dp"
                             android:text="S"
+                            android:textColor="@android:color/white"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             android:padding="0dp"
                             android:checkable="true"
-                            app:cornerRadius="8dp"
-                            app:strokeColor="@color/primary_teal" />
+                            app:cornerRadius="4dp"
+                            app:strokeColor="@color/industrial_stroke"
+                            app:strokeWidth="1dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_mon"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="44dp"
                             android:layout_weight="1"
-                            android:layout_margin="3dp"
+                            android:layout_margin="2dp"
                             android:text="M"
+                            android:textColor="@android:color/white"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             android:padding="0dp"
                             android:checkable="true"
-                            app:cornerRadius="8dp"
-                            app:strokeColor="@color/primary_teal" />
+                            app:cornerRadius="4dp"
+                            app:strokeColor="@color/industrial_stroke"
+                            app:strokeWidth="1dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_tue"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="44dp"
                             android:layout_weight="1"
-                            android:layout_margin="3dp"
+                            android:layout_margin="2dp"
                             android:text="T"
+                            android:textColor="@android:color/white"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             android:padding="0dp"
                             android:checkable="true"
-                            app:cornerRadius="8dp"
-                            app:strokeColor="@color/primary_teal" />
+                            app:cornerRadius="4dp"
+                            app:strokeColor="@color/industrial_stroke"
+                            app:strokeWidth="1dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_wed"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="44dp"
                             android:layout_weight="1"
-                            android:layout_margin="3dp"
+                            android:layout_margin="2dp"
                             android:text="W"
+                            android:textColor="@android:color/white"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             android:padding="0dp"
                             android:checkable="true"
-                            app:cornerRadius="8dp"
-                            app:strokeColor="@color/primary_teal" />
+                            app:cornerRadius="4dp"
+                            app:strokeColor="@color/industrial_stroke"
+                            app:strokeWidth="1dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_thu"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="44dp"
                             android:layout_weight="1"
-                            android:layout_margin="3dp"
+                            android:layout_margin="2dp"
                             android:text="T"
+                            android:textColor="@android:color/white"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             android:padding="0dp"
                             android:checkable="true"
-                            app:cornerRadius="8dp"
-                            app:strokeColor="@color/primary_teal" />
+                            app:cornerRadius="4dp"
+                            app:strokeColor="@color/industrial_stroke"
+                            app:strokeWidth="1dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_fri"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="44dp"
                             android:layout_weight="1"
-                            android:layout_margin="3dp"
+                            android:layout_margin="2dp"
                             android:text="F"
+                            android:textColor="@android:color/white"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             android:padding="0dp"
                             android:checkable="true"
-                            app:cornerRadius="8dp"
-                            app:strokeColor="@color/primary_teal" />
+                            app:cornerRadius="4dp"
+                            app:strokeColor="@color/industrial_stroke"
+                            app:strokeWidth="1dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_sat"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="44dp"
                             android:layout_weight="1"
-                            android:layout_margin="3dp"
+                            android:layout_margin="2dp"
                             android:text="S"
+                            android:textColor="@android:color/white"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             android:padding="0dp"
                             android:checkable="true"
-                            app:cornerRadius="8dp"
-                            app:strokeColor="@color/primary_teal" />
+                            app:cornerRadius="4dp"
+                            app:strokeColor="@color/industrial_stroke"
+                            app:strokeWidth="1dp" />
 
                     </LinearLayout>
                 </LinearLayout>
@@ -288,8 +334,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                app:cardBackgroundColor="@color/btn_active_off"
+                app:cardCornerRadius="4dp"
+                app:cardElevation="4dp"
+                app:strokeColor="@color/industrial_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -306,15 +355,19 @@
                             android:layout_height="wrap_content"
                             android:layout_centerVertical="true"
                             android:fontFamily="sans-serif-condensed"
+                            android:letterSpacing="0.05"
                             android:text="MORNING SCHEDULE"
-                            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                            android:textColor="@android:color/white"
+                            android:textSize="14sp"
                             android:textStyle="bold" />
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
                             android:id="@+id/switch_morning"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_alignParentEnd="true" />
+                            android:layout_alignParentEnd="true"
+                            app:thumbTint="@color/selector_switch_thumb"
+                            app:trackTint="@color/selector_switch_track" />
                     </RelativeLayout>
 
                     <com.google.android.material.button.MaterialButton
@@ -324,23 +377,37 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:fontFamily="monospace"
+                        android:letterSpacing="0.1"
                         android:text="START TIME: 08:00 AM"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
-                        android:textColor="@color/primary_teal" />
+                        android:textColor="@color/led_on"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:hint="RUN DURATION (MIN)"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                        app:boxBackgroundColor="@color/industrial_stroke"
+                        app:boxBackgroundMode="filled"
+                        app:boxStrokeColor="@color/selector_input_stroke"
+                        app:boxStrokeWidth="1dp"
+                        app:boxCornerRadiusTopStart="4dp"
+                        app:boxCornerRadiusTopEnd="4dp"
+                        app:boxCornerRadiusBottomStart="4dp"
+                        app:boxCornerRadiusBottomEnd="4dp"
+                        app:hintTextColor="@color/industrial_text_inactive"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_morning_duration"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:fontFamily="monospace"
-                            android:inputType="number" />
+                            android:inputType="number"
+                            android:textColor="@android:color/white"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -351,8 +418,11 @@
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                app:cardBackgroundColor="@color/btn_active_off"
+                app:cardCornerRadius="4dp"
+                app:cardElevation="4dp"
+                app:strokeColor="@color/industrial_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -369,15 +439,19 @@
                             android:layout_height="wrap_content"
                             android:layout_centerVertical="true"
                             android:fontFamily="sans-serif-condensed"
+                            android:letterSpacing="0.05"
                             android:text="EVENING SCHEDULE"
-                            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                            android:textColor="@android:color/white"
+                            android:textSize="14sp"
                             android:textStyle="bold" />
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
                             android:id="@+id/switch_afternoon"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_alignParentEnd="true" />
+                            android:layout_alignParentEnd="true"
+                            app:thumbTint="@color/selector_switch_thumb"
+                            app:trackTint="@color/selector_switch_track" />
                     </RelativeLayout>
 
                     <com.google.android.material.button.MaterialButton
@@ -387,23 +461,37 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:fontFamily="monospace"
+                        android:letterSpacing="0.1"
                         android:text="START TIME: 05:00 PM"
-                        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
-                        android:textColor="@color/primary_teal" />
+                        android:textColor="@color/led_on"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:hint="RUN DURATION (MIN)"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                        app:boxBackgroundColor="@color/industrial_stroke"
+                        app:boxBackgroundMode="filled"
+                        app:boxStrokeColor="@color/selector_input_stroke"
+                        app:boxStrokeWidth="1dp"
+                        app:boxCornerRadiusTopStart="4dp"
+                        app:boxCornerRadiusTopEnd="4dp"
+                        app:boxCornerRadiusBottomStart="4dp"
+                        app:boxCornerRadiusBottomEnd="4dp"
+                        app:hintTextColor="@color/industrial_text_inactive"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_afternoon_duration"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:fontFamily="monospace"
-                            android:inputType="number" />
+                            android:inputType="number"
+                            android:textColor="@android:color/white"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -415,13 +503,18 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_save_schedule"
         android:layout_width="0dp"
-        android:layout_height="65dp"
+        android:layout_height="60dp"
         android:layout_margin="12dp"
+        android:backgroundTint="@color/primary_teal"
         android:fontFamily="sans-serif-condensed"
+        android:letterSpacing="0.1"
         android:text="SAVE SCHEDULE"
+        android:textSize="16sp"
         android:textStyle="bold"
-        app:cornerRadius="16dp"
+        app:cornerRadius="4dp"
         app:elevation="8dp"
+        app:strokeColor="@color/primary_dark_teal"
+        app:strokeWidth="2dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

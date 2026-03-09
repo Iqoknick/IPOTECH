@@ -163,7 +163,10 @@ class SchedulerFragment : Fragment() {
                 val isActive = snapshot.getValue(Boolean::class.java) ?: false
                 if (isActive) {
                     binding.tvSystemStatus.text = getString(R.string.status_running)
-                    binding.cardStatus.setCardBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.holo_green_dark))
+                    binding.cardStatus.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.btn_active_off))
+                    binding.cardStatus.strokeColor = ContextCompat.getColor(requireContext(), R.color.led_on)
+                    binding.tvSystemStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.led_on))
+                    binding.tvLastModified.setTextColor(ContextCompat.getColor(requireContext(), R.color.industrial_text_inactive))
                 } else {
                     updateStandbyStatus()
                 }
@@ -176,10 +179,16 @@ class SchedulerFragment : Fragment() {
         if (_binding == null) return
         if (binding.switchMaster.isChecked) {
             binding.tvSystemStatus.text = getString(R.string.status_standby)
-            binding.cardStatus.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.primary_teal))
+            binding.cardStatus.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.btn_active_off))
+            binding.cardStatus.strokeColor = ContextCompat.getColor(requireContext(), R.color.primary_teal)
+            binding.tvSystemStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.led_on))
+            binding.tvLastModified.setTextColor(ContextCompat.getColor(requireContext(), R.color.industrial_text_inactive))
         } else {
             binding.tvSystemStatus.text = getString(R.string.status_disabled)
-            binding.cardStatus.setCardBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray))
+            binding.cardStatus.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.btn_active_off))
+            binding.cardStatus.strokeColor = ContextCompat.getColor(requireContext(), R.color.industrial_stroke)
+            binding.tvSystemStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.industrial_text_inactive))
+            binding.tvLastModified.setTextColor(ContextCompat.getColor(requireContext(), R.color.industrial_text_inactive))
         }
     }
 

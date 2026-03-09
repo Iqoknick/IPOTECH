@@ -2,41 +2,48 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/primary_dark_teal"
+    android:background="@color/btn_active_off"
     android:orientation="vertical"
-    android:padding="24dp"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="32dp"
+    android:paddingBottom="16dp"
     android:theme="@style/ThemeOverlay.AppCompat.Dark">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-condensed"
+        android:letterSpacing="0.1"
         android:text="@string/title_dashboard"
         android:textColor="@color/white"
-        android:textSize="32sp"
+        android:textSize="28sp"
         android:textStyle="bold" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-condensed"
+        android:letterSpacing="0.15"
         android:text="@string/subtitle_dashboard"
-        android:textColor="@color/white"
-        android:textSize="18sp"
-        android:letterSpacing="0.1" />
+        android:textColor="@color/industrial_text_inactive"
+        android:textSize="16sp" />
 
+    <!-- Industrial accent line -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:layout_marginTop="28dp"
-        android:layout_marginBottom="12dp"
-        android:background="@color/accent_green" />
+        android:layout_height="3dp"
+        android:layout_marginTop="20dp"
+        android:background="@color/led_on" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:fontFamily="sans-serif-condensed"
+        android:letterSpacing="0.2"
         android:text="@string/menu_label"
-        android:textColor="@color/white"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.1" />
+        android:textColor="@color/industrial_text_inactive"
+        android:textSize="14sp"
+        android:textStyle="bold" />
 
 </LinearLayout>

@@ -15,6 +15,20 @@
         <item name="android:windowBackground">@color/background_light</item>
     </style>
 
+    <!-- Industrial menu item shape -->
+    <style name="ShapeAppearance.IPOTech.MenuItemShape" parent="ShapeAppearance.MaterialComponents.SmallComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">4dp</item>
+    </style>
+
+    <!-- Industrial menu text appearance -->
+    <style name="TextAppearance.IPOTech.MenuItem" parent="TextAppearance.MaterialComponents.Subtitle1">
+        <item name="android:textSize">16sp</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:letterSpacing">0.05</item>
+    </style>
+
     <!-- Industrial squared shapes -->
     <style name="ShapeAppearance.IPOTech.LeftRounded" parent="ShapeAppearance.MaterialComponents.SmallComponent">
         <item name="cornerFamily">rounded</item>

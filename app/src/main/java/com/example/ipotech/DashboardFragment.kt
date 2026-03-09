@@ -129,6 +129,7 @@ class DashboardFragment : Fragment() {
         
         binding.switchManualOverride.setOnCheckedChangeListener { _, isChecked ->
             database.child("conveyor").child("manual_override").setValue(isChecked)
+            logActivity("Manual Override", if (isChecked) "ENABLED" else "DISABLED")
         }
 
         // Update Hysteresis Button
@@ -236,6 +237,7 @@ class DashboardFragment : Fragment() {
                 binding.switchManualOverride.isChecked = isOverride
                 binding.switchManualOverride.setOnCheckedChangeListener { _, isChecked ->
                     database.child("conveyor").child("manual_override").setValue(isChecked)
+                    logActivity("Manual Override", if (isChecked) "ENABLED" else "DISABLED")
                 }
                 isConveyorOn = newStatus
                 updateControlUI(binding.controlConveyor, isConveyorOn)

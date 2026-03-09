@@ -63,7 +63,7 @@
                             android:fontFamily="monospace"
                             android:text="0.0°C"
                             android:textColor="@color/led_on"
-                            android:textSize="28sp"
+                            android:textSize="22sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -145,7 +145,7 @@
                         android:fontFamily="monospace"
                         android:text="00:00:00"
                         android:textColor="@color/led_on"
-                        android:textSize="28sp"
+                        android:textSize="22sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -158,21 +158,40 @@
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="8dp"
                 android:fontFamily="sans-serif-condensed"
-                android:letterSpacing="0.1"
+                android:letterSpacing="0.15"
                 android:text="DEVICE CONTROL"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textColor="@color/btn_active_off"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/switch_manual_override"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
                 android:layout_marginEnd="4dp"
                 android:layout_marginBottom="8dp"
-                android:fontFamily="sans-serif-condensed"
-                android:text="CONVEYOR MANUAL OVERRIDE"
-                android:textStyle="bold" />
+                app:cardBackgroundColor="@color/btn_active_off"
+                app:cardCornerRadius="4dp"
+                app:cardElevation="4dp"
+                app:strokeColor="@color/industrial_stroke"
+                app:strokeWidth="1dp">
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switch_manual_override"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="56dp"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="14dp"
+                    android:fontFamily="sans-serif-condensed"
+                    android:text="CONVEYOR MANUAL OVERRIDE"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    app:thumbTint="@color/selector_switch_thumb"
+                    app:trackTint="@color/selector_switch_track"
+                    app:trackDecorationTint="@android:color/transparent" />
+            </com.google.android.material.card.MaterialCardView>
 
             <include
                 android:id="@+id/control_heater"
@@ -194,17 +213,21 @@
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="8dp"
                 android:fontFamily="sans-serif-condensed"
-                android:letterSpacing="0.1"
+                android:letterSpacing="0.15"
                 android:text="HYSTERESIS SETTINGS"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textColor="@color/btn_active_off"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardBackgroundColor="@color/btn_active_off"
+                app:cardCornerRadius="4dp"
+                app:cardElevation="6dp"
+                app:strokeColor="@color/industrial_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -224,14 +247,27 @@
                             android:layout_marginEnd="8dp"
                             android:layout_weight="1"
                             android:hint="LOW TEMP (°C)"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                            app:boxBackgroundColor="@color/industrial_stroke"
+                            app:boxBackgroundMode="filled"
+                            app:boxStrokeColor="@color/selector_input_stroke"
+                            app:boxStrokeWidth="1dp"
+                            app:boxCornerRadiusTopStart="4dp"
+                            app:boxCornerRadiusTopEnd="4dp"
+                            app:boxCornerRadiusBottomStart="4dp"
+                            app:boxCornerRadiusBottomEnd="4dp"
+                            app:hintTextColor="@color/industrial_text_inactive"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/et_temp_low"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:fontFamily="monospace"
                                 android:inputType="numberDecimal"
-                                android:text="120" />
+                                android:text="120"
+                                android:textColor="@android:color/white"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.textfield.TextInputLayout
@@ -240,25 +276,43 @@
                             android:layout_marginStart="8dp"
                             android:layout_weight="1"
                             android:hint="HIGH TEMP (°C)"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                            app:boxBackgroundColor="@color/industrial_stroke"
+                            app:boxBackgroundMode="filled"
+                            app:boxStrokeColor="@color/selector_input_stroke"
+                            app:boxStrokeWidth="1dp"
+                            app:boxCornerRadiusTopStart="4dp"
+                            app:boxCornerRadiusTopEnd="4dp"
+                            app:boxCornerRadiusBottomStart="4dp"
+                            app:boxCornerRadiusBottomEnd="4dp"
+                            app:hintTextColor="@color/industrial_text_inactive"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/et_temp_high"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
+                                android:fontFamily="monospace"
                                 android:inputType="numberDecimal"
-                                android:text="130" />
+                                android:text="130"
+                                android:textColor="@android:color/white"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_update_hysteresis"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="16dp"
+                        android:backgroundTint="@color/primary_teal"
+                        android:fontFamily="sans-serif-condensed"
+                        android:letterSpacing="0.1"
                         android:text="UPDATE HYSTERESIS"
-                        app:cornerRadius="8dp" />
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="4dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -270,9 +324,10 @@
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="8dp"
                 android:fontFamily="sans-serif-condensed"
-                android:letterSpacing="0.1"
+                android:letterSpacing="0.15"
                 android:text="ACTIVITY LOG"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textColor="@color/btn_active_off"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <com.google.android.material.card.MaterialCardView
@@ -280,14 +335,17 @@
                 android:layout_height="200dp"
                 android:layout_margin="4dp"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardBackgroundColor="@color/btn_active_off"
+                app:cardCornerRadius="4dp"
+                app:cardElevation="6dp"
+                app:strokeColor="@color/industrial_stroke"
+                app:strokeWidth="1dp">
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rv_activity_log"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:padding="8dp" />
+                    android:padding="12dp" />
             </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
@@ -297,22 +355,26 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_emergency_stop"
         android:layout_width="0dp"
-        android:layout_height="85dp"
+        android:layout_height="80dp"
         android:layout_margin="12dp"
-        android:backgroundTint="@color/exit_red"
+        android:backgroundTint="#B71C1C"
         android:fontFamily="sans-serif-condensed"
+        android:letterSpacing="0.1"
         android:text="EMERGENCY STOP"
         android:textAllCaps="true"
         android:textColor="@android:color/white"
-        android:textSize="22sp"
+        android:textSize="20sp"
         android:textStyle="bold"
-        app:cornerRadius="16dp"
-        app:elevation="12dp"
+        app:cornerRadius="8dp"
+        app:elevation="8dp"
         app:icon="@android:drawable/ic_delete"
         app:iconGravity="textStart"
-        app:iconPadding="16dp"
-        app:iconSize="36dp"
+        app:iconPadding="12dp"
+        app:iconSize="32dp"
         app:iconTint="@android:color/white"
+        app:strokeColor="#8B0000"
+        app:strokeWidth="3dp"
+        app:rippleColor="#FFCDD2"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

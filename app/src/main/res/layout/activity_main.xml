@@ -14,77 +14,93 @@
         <com.google.android.material.appbar.AppBarLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar">
+            android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
+            app:elevation="8dp">
 
-            <androidx.appcompat.widget.Toolbar
-                android:id="@+id/toolbar"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="80dp"
-                android:background="#222D32"
-                app:contentInsetStart="0dp"
-                app:contentInsetStartWithNavigation="0dp">
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#1A2424">
 
-                <RelativeLayout
+                <androidx.appcompat.widget.Toolbar
+                    android:id="@+id/toolbar"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent">
+                    android:layout_height="76dp"
+                    android:background="#1E2A2A"
+                    app:contentInsetStart="0dp"
+                    app:contentInsetStartWithNavigation="0dp">
 
-                    <ImageButton
-                        android:id="@+id/btn_menu_custom"
-                        android:layout_width="56dp"
-                        android:layout_height="match_parent"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@drawable/ic_menu"
-                        app:tint="@color/white" />
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
 
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerInParent="true"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-condensed"
-                            android:letterSpacing="0.15"
-                            android:text="IPOTECH"
-                            android:textColor="@color/white"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
+                        <ImageButton
+                            android:id="@+id/btn_menu_custom"
+                            android:layout_width="56dp"
+                            android:layout_height="match_parent"
+                            android:layout_alignParentStart="true"
+                            android:layout_centerVertical="true"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:src="@drawable/ic_menu"
+                            app:tint="@color/white" />
 
                         <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <View
-                                android:layout_width="8dp"
-                                android:layout_height="8dp"
-                                android:layout_marginEnd="6dp"
-                                android:background="@drawable/circle_indicator"
-                                android:backgroundTint="#4CAF50" />
+                            android:layout_centerInParent="true"
+                            android:gravity="center"
+                            android:orientation="vertical">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:fontFamily="monospace"
+                                android:fontFamily="sans-serif-condensed"
                                 android:letterSpacing="0.2"
-                                android:text="SYSTEM ACTIVE"
-                                android:textColor="#4CAF50"
-                                android:textSize="13sp"
+                                android:text="IPOTECH"
+                                android:textColor="@color/white"
+                                android:textSize="22sp"
                                 android:textStyle="bold" />
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <View
+                                    android:layout_width="8dp"
+                                    android:layout_height="8dp"
+                                    android:layout_marginEnd="6dp"
+                                    android:background="@drawable/circle_indicator"
+                                    android:backgroundTint="@color/led_on" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="monospace"
+                                    android:letterSpacing="0.15"
+                                    android:text="SYSTEM ACTIVE"
+                                    android:textColor="@color/led_on"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold" />
+
+                            </LinearLayout>
 
                         </LinearLayout>
 
-                    </LinearLayout>
+                    </RelativeLayout>
 
-                </RelativeLayout>
+                </androidx.appcompat.widget.Toolbar>
 
-            </androidx.appcompat.widget.Toolbar>
+                <!-- Industrial accent line -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="3dp"
+                    android:background="@color/led_on" />
+
+            </LinearLayout>
 
         </com.google.android.material.appbar.AppBarLayout>
 
@@ -103,7 +119,7 @@
         android:layout_width="280dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="@color/primary_dark_teal"
+        android:background="@color/btn_active_off"
         android:orientation="vertical">
 
         <com.google.android.material.navigation.NavigationView
@@ -113,29 +129,37 @@
             android:layout_weight="1"
             android:background="@android:color/transparent"
             app:headerLayout="@layout/nav_header"
-            app:itemIconTint="@color/white"
+            app:itemIconTint="@color/led_on"
             app:itemTextColor="@color/white"
+            app:itemTextAppearance="@style/TextAppearance.IPOTech.MenuItem"
+            app:itemTextAppearanceActive="@style/TextAppearance.IPOTech.MenuItem"
             app:menu="@menu/nav_menu"
-            app:itemShapeFillColor="@color/accent_green" />
+            app:itemShapeFillColor="@color/primary_teal"
+            app:itemShapeAppearance="@style/ShapeAppearance.IPOTech.MenuItemShape" />
 
-        <!-- Centered Exit Button at bottom -->
+        <!-- Industrial Exit Button at bottom -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_exit_nav"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="24dp"
-            android:backgroundTint="@color/accent_green"
-            android:paddingStart="24dp"
-            android:paddingEnd="24dp"
+            android:backgroundTint="#B71C1C"
+            android:fontFamily="sans-serif-condensed"
+            android:letterSpacing="0.1"
+            android:paddingStart="32dp"
+            android:paddingEnd="32dp"
             android:text="Exit System"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            app:cornerRadius="8dp"
+            android:textSize="14sp"
+            app:cornerRadius="4dp"
             app:icon="@android:drawable/ic_lock_power_off"
             app:iconGravity="textStart"
-            app:iconTint="@color/white" />
+            app:iconTint="@color/white"
+            app:strokeColor="#8B0000"
+            app:strokeWidth="2dp" />
 
     </LinearLayout>
 
