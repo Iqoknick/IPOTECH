@@ -318,23 +318,25 @@ class DashboardFragment : Fragment() {
     private fun updateControlUI(controlBinding: ItemDeviceControlBinding, isOn: Boolean) {
         if (_binding == null || !isAdded) return
         val context = context ?: return
-        val indicatorColor = ContextCompat.getColor(context, if (isOn) R.color.status_active else R.color.status_idle)
-        controlBinding.statusIndicator.backgroundTintList = ColorStateList.valueOf(indicatorColor)
         
-        // Updated toggle button styling
-        val onActiveColor = ContextCompat.getColor(context, R.color.toggle_on_bg)
-        val offActiveColor = ContextCompat.getColor(context, R.color.toggle_off_bg)
-        val inactiveColor = ContextCompat.getColor(context, R.color.toggle_neutral_inactive)
-        val white = ContextCompat.getColor(context, R.color.white)
-        val inactiveTextColor = ContextCompat.getColor(context, R.color.toggle_inactive_text)
+        // Industrial LED indicator: bright green when ON, dark gray when OFF
+        val ledColor = ContextCompat.getColor(context, if (isOn) R.color.led_on else R.color.led_off)
+        controlBinding.statusIndicator.backgroundTintList = ColorStateList.valueOf(ledColor)
+        
+        // Industrial toggle button styling
+        val onActiveColor = ContextCompat.getColor(context, R.color.industrial_on_active)
+        val offActiveColor = ContextCompat.getColor(context, R.color.industrial_off_active)
+        val inactiveColor = ContextCompat.getColor(context, R.color.industrial_on_inactive)
+        val activeTextColor = ContextCompat.getColor(context, R.color.industrial_text_active)
+        val inactiveTextColor = ContextCompat.getColor(context, R.color.industrial_text_inactive)
 
-        // ON button: green when active, neutral gray when inactive
+        // ON button: bright green when active, dark industrial gray when inactive
         controlBinding.btnOn.backgroundTintList = ColorStateList.valueOf(if (isOn) onActiveColor else inactiveColor)
-        controlBinding.btnOn.setTextColor(if (isOn) white else inactiveTextColor)
+        controlBinding.btnOn.setTextColor(if (isOn) activeTextColor else inactiveTextColor)
         
-        // OFF button: dark when active, neutral gray when inactive
+        // OFF button: red when active, dark industrial gray when inactive
         controlBinding.btnOff.backgroundTintList = ColorStateList.valueOf(if (!isOn) offActiveColor else inactiveColor)
-        controlBinding.btnOff.setTextColor(if (!isOn) white else inactiveTextColor)
+        controlBinding.btnOff.setTextColor(if (!isOn) activeTextColor else inactiveTextColor)
     }
 
     private fun logActivity(action: String, details: String) {
