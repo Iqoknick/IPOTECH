@@ -1,8 +1,13 @@
 package com.example.ipotech
 
+import android.app.AlarmManager
 import android.content.Context
+import android.content.Intent
 import android.content.res.ColorStateList
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -107,8 +112,34 @@ class SchedulerFragment : Fragment() {
             database.child("masterEnabled").setValue(isChecked)
             
             if (isChecked && context != null) {
+                // Re-read schedule and schedule alarms
+                database.get().addOnSuccessListener { snapshot ->
+                    if (_binding == null || context == null) return@addOnSuccessListener
+                    
+                    val morningEnabled = snapshot.child("morning/enabled").getValue(Boolean::class.java) ?: false
+                    val morningTime = snapshot.child("morning/start").getValue(String::class.java) ?: "08:00"
+                    val morningDuration = snapshot.child("morning/duration").value?.toString()?.toIntOrNull() ?: 0
+                    
+                    val afternoonEnabled = snapshot.child("afternoon/enabled").getValue(Boolean::class.java) ?: false
+                    val afternoonTime = snapshot.child("afternoon/start").getValue(String::class.java) ?: "13:00"
+                    val afternoonDuration = snapshot.child("afternoon/duration").value?.toString()?.toIntOrNull() ?: 0
+                    
+                    scheduleExactAlarms(
+                        masterEnabled = true,
+                        morningEnabled = morningEnabled,
+                        morningTime = morningTime,
+                        morningDuration = morningDuration,
+                        afternoonEnabled = afternoonEnabled,
+                        afternoonTime = afternoonTime,
+                        afternoonDuration = afternoonDuration
+                    )
+                }
+                
                 val oneTimeWork = OneTimeWorkRequestBuilder<ScheduleWorker>().build()
                 WorkManager.getInstance(requireContext()).enqueue(oneTimeWork)
+            } else if (!isChecked && context != null) {
+                // Cancel all alarms when master is disabled
+                AlarmScheduler.cancelAllAlarms(requireContext())
             }
         }
     }
@@ -286,8 +317,95 @@ class SchedulerFragment : Fragment() {
             if (context != null) {
                 Toast.makeText(requireContext(), "Schedule Saved!", Toast.LENGTH_SHORT).show()
                 updateStandbyStatus()
+                
+                // Schedule exact alarms
+                scheduleExactAlarms(
+                    masterEnabled = binding.switchMaster.isChecked,
+                    morningEnabled = binding.switchMorning.isChecked,
+                    morningTime = morningStartTime,
+                    morningDuration = morningDuration,
+                    afternoonEnabled = binding.switchAfternoon.isChecked,
+                    afternoonTime = afternoonStartTime,
+                    afternoonDuration = afternoonDuration
+                )
+                
+                // Keep WorkManager as fallback
                 val oneTimeWork = OneTimeWorkRequestBuilder<ScheduleWorker>().build()
                 WorkManager.getInstance(requireContext()).enqueue(oneTimeWork)
+            }
+        }
+    }
+    
+    /**
+     * Schedule exact alarms for conveyor start/stop
+     */
+    private fun scheduleExactAlarms(
+        masterEnabled: Boolean,
+        morningEnabled: Boolean,
+        morningTime: String,
+        morningDuration: Int,
+        afternoonEnabled: Boolean,
+        afternoonTime: String,
+        afternoonDuration: Int
+    ) {
+        val ctx = context ?: return
+        
+        // Cancel all existing alarms first
+        AlarmScheduler.cancelAllAlarms(ctx)
+        
+        if (!masterEnabled) {
+            return
+        }
+        
+        // Check exact alarm permission on Android 12+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            if (!alarmManager.canScheduleExactAlarms()) {
+                // Prompt user to grant permission
+                Toast.makeText(
+                    ctx,
+                    "Please allow exact alarms for precise scheduling",
+                    Toast.LENGTH_LONG
+                ).show()
+                
+                try {
+                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                        data = Uri.fromParts("package", ctx.packageName, null)
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    // Fallback - continue with inexact alarms
+                }
+            }
+        }
+        
+        // Schedule morning alarm
+        if (morningEnabled && morningDuration > 0) {
+            val timeParts = AlarmScheduler.parseTime(morningTime)
+            if (timeParts != null) {
+                AlarmScheduler.scheduleStart(
+                    ctx,
+                    timeParts.first,
+                    timeParts.second,
+                    morningDuration,
+                    "Morning",
+                    AlarmScheduler.REQUEST_MORNING_START
+                )
+            }
+        }
+        
+        // Schedule afternoon/evening alarm
+        if (afternoonEnabled && afternoonDuration > 0) {
+            val timeParts = AlarmScheduler.parseTime(afternoonTime)
+            if (timeParts != null) {
+                AlarmScheduler.scheduleStart(
+                    ctx,
+                    timeParts.first,
+                    timeParts.second,
+                    afternoonDuration,
+                    "Evening",
+                    AlarmScheduler.REQUEST_AFTERNOON_START
+                )
             }
         }
     }

@@ -9,5 +9,9 @@
             android:id="@+id/nav_scheduler"
             android:icon="@drawable/ic_schedule"
             android:title="Conveyor Scheduler" />
+        <item
+            android:id="@+id/nav_trends"
+            android:icon="@drawable/ic_trends"
+            android:title="Temperature Trends" />
     </group>
 </menu>

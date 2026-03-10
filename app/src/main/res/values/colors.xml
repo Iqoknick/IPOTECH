@@ -11,6 +11,16 @@
     <color name="card_background">#FFFFFF</color>
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>
+    
+    <!-- Text colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    
+    <!-- Common UI colors -->
+    <color name="background">#E8ECEC</color>
+    <color name="primary">#00695C</color>
+    <color name="accent">#4CAF50</color>
+    <color name="divider">#E0E0E0</color>
 
     <color name="btn_active_on">#1B5E20</color>
     <color name="btn_active_off">#1E2A2A</color>

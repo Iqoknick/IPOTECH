@@ -16,4 +16,10 @@
         android:name="com.example.ipotech.SchedulerFragment"
         android:label="Conveyor Scheduler"
         tools:layout="@layout/fragment_scheduler" />
+
+    <fragment
+        android:id="@+id/nav_trends"
+        android:name="com.example.ipotech.TrendsFragment"
+        android:label="Temperature Trends"
+        tools:layout="@layout/fragment_trends" />
 </navigation>

@@ -1,14 +1,26 @@
 package com.example.ipotech
 
+import android.Manifest
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AnimationUtils
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -36,6 +48,29 @@ class DashboardFragment : Fragment() {
     // Default Settings (Matches your ESP32 code: 120-130°C)
     private var targetLow = 120.0
     private var targetHigh = 130.0
+    
+    // Connection state listener
+    private var connectionListener: ValueEventListener? = null
+    private var isConnected = true
+    
+    // Temperature history saving (throttle to every 5 minutes)
+    private var lastTempSaveTime = 0L
+    private val TEMP_SAVE_INTERVAL = 5 * 60 * 1000L // 5 minutes
+    
+    // Temperature alert tracking (avoid notification spam)
+    private var lastAlertTime = 0L
+    private val ALERT_COOLDOWN = 60 * 1000L // 1 minute between alerts
+    private var lastAlertType: String? = null // "high", "low", or null
+    private val NOTIFICATION_ID_TEMP = 1001
+    
+    // Permission request launcher
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permission granted, alerts will now work
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -55,6 +90,95 @@ class DashboardFragment : Fragment() {
         setupEmergencyStop()
         observeFirebase()
         setupUIFocusHandling()
+        setupConnectionListener()
+        requestNotificationPermission()
+        
+        // Initialize temperature gauge thresholds
+        binding.temperatureGauge.setThresholds(targetLow.toFloat(), targetHigh.toFloat())
+        binding.temperatureGauge.setRange(0f, 200f)
+    }
+    
+    /**
+     * Request notification permission for Android 13+
+     */
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+    
+    /**
+     * Vibrate the device for haptic feedback
+     */
+    private fun vibrate(durationMs: Long = 50, isStrong: Boolean = false) {
+        val ctx = context ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                val vibrator = vibratorManager.defaultVibrator
+                val effect = if (isStrong) {
+                    VibrationEffect.createOneShot(durationMs, VibrationEffect.EFFECT_HEAVY_CLICK)
+                } else {
+                    VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE)
+                }
+                vibrator.vibrate(effect)
+            } else {
+                @Suppress("DEPRECATION")
+                val vibrator = ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val effect = VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE)
+                    vibrator.vibrate(effect)
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(durationMs)
+                }
+            }
+        } catch (e: Exception) {
+            // Vibration not available
+        }
+    }
+    
+    /**
+     * Setup Firebase connection state listener
+     */
+    private fun setupConnectionListener() {
+        val connectedRef = FirebaseDatabase.getInstance("https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/")
+            .getReference(".info/connected")
+        
+        connectionListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (_binding == null) return
+                isConnected = snapshot.getValue(Boolean::class.java) ?: false
+                updateConnectionUI()
+            }
+            override fun onCancelled(error: DatabaseError) {
+                if (_binding == null) return
+                isConnected = false
+                updateConnectionUI()
+            }
+        }
+        connectedRef.addValueEventListener(connectionListener!!)
+    }
+    
+    /**
+     * Update the offline indicator UI based on connection state
+     */
+    private fun updateConnectionUI() {
+        if (_binding == null) return
+        binding.offlineIndicator.visibility = if (isConnected) View.GONE else View.VISIBLE
+        
+        // Change temperature card border to red when offline
+        if (!isConnected) {
+            binding.cardTemperature.strokeColor = ContextCompat.getColor(requireContext(), R.color.industrial_off_active)
+        } else {
+            binding.cardTemperature.strokeColor = ContextCompat.getColor(requireContext(), R.color.industrial_stroke)
+        }
     }
 
     private fun setupUIFocusHandling() {
@@ -74,6 +198,9 @@ class DashboardFragment : Fragment() {
 
     private fun setupEmergencyStop() {
         binding.btnEmergencyStop.setOnClickListener {
+            // Strong vibration for emergency stop
+            vibrate(200, isStrong = true)
+            
             val stopUpdates = HashMap<String, Any>()
             stopUpdates["conveyor/status"] = false
             stopUpdates["pulverizer/status"] = false
@@ -102,6 +229,7 @@ class DashboardFragment : Fragment() {
     private fun setupControls() {
         binding.controlHeater.tvDeviceName.text = getString(R.string.heater)
         val heaterToggle = View.OnClickListener {
+            vibrate() // Haptic feedback
             val newState = !isHeaterOn
             updateDeviceStatus("heater", newState)
             logActivity("Heater", if (newState) "Manual ON" else "Manual OFF")
@@ -111,6 +239,7 @@ class DashboardFragment : Fragment() {
 
         binding.controlConveyor.tvDeviceName.text = getString(R.string.conveyor)
         val conveyorToggle = View.OnClickListener {
+            vibrate() // Haptic feedback
             val newState = !isConveyorOn
             updateDeviceStatus("conveyor", newState)
             logActivity("Conveyor", if (newState) "Manual ON" else "Manual OFF")
@@ -120,6 +249,7 @@ class DashboardFragment : Fragment() {
 
         binding.controlPulverizer.tvDeviceName.text = getString(R.string.pulverizer)
         val pulverizerToggle = View.OnClickListener {
+            vibrate() // Haptic feedback
             val newState = !isPulverizerOn
             updateDeviceStatus("pulverizer", newState)
             logActivity("Pulverizer", if (newState) "Manual ON" else "Manual OFF")
@@ -128,12 +258,14 @@ class DashboardFragment : Fragment() {
         binding.controlPulverizer.btnOff.setOnClickListener(pulverizerToggle)
         
         binding.switchManualOverride.setOnCheckedChangeListener { _, isChecked ->
+            vibrate() // Haptic feedback
             database.child("conveyor").child("manual_override").setValue(isChecked)
             logActivity("Manual Override", if (isChecked) "ENABLED" else "DISABLED")
         }
 
         // Update Hysteresis Button
         binding.btnUpdateHysteresis.setOnClickListener {
+            vibrate() // Haptic feedback
             val low = binding.etTempLow.text.toString().toDoubleOrNull() ?: 120.0
             val high = binding.etTempHigh.text.toString().toDoubleOrNull() ?: 130.0
             
@@ -146,6 +278,9 @@ class DashboardFragment : Fragment() {
                     Toast.makeText(requireContext(), "Hysteresis Updated: $low°C - $high°C", Toast.LENGTH_SHORT).show()
                     logActivity("Heater", "Settings Updated: $low - $high°C")
                     hideKeyboardAndClearFocus()
+                    
+                    // Update gauge thresholds
+                    binding.temperatureGauge.setThresholds(low.toFloat(), high.toFloat())
                 }
             }
         }
@@ -178,11 +313,14 @@ class DashboardFragment : Fragment() {
                 if (!binding.etTempHigh.hasFocus()) {
                     binding.etTempHigh.setText(targetHigh.toInt().toString())
                 }
+                
+                // Update gauge thresholds
+                binding.temperatureGauge.setThresholds(targetLow.toFloat(), targetHigh.toFloat())
             }
             override fun onCancelled(error: DatabaseError) {}
         })
 
-        // Temperature Observer (Logic removed to ESP32)
+        // Temperature Observer - Update Gauge
         database.child("temperature").child("current").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
@@ -191,14 +329,21 @@ class DashboardFragment : Fragment() {
                     is Long -> temp.toDouble()
                     else -> temp?.toString()?.toDoubleOrNull() ?: 0.0
                 }
+                
+                // Update text (hidden, for compatibility)
                 binding.tvTemperature.text = String.format("%.1f°C", tempValue)
-
-                /* 
-                   REMOVED HYSTERESIS LOGIC FROM ANDROID APP
-                   The app should not write 'relay_status' based on temperature updates.
-                   This was causing a feedback loop that crashed the ESP32 (LCD Flickering).
-                   The ESP32 now handles this logic internally.
-                */
+                
+                // Update the temperature gauge
+                binding.temperatureGauge.setTemperature(tempValue.toFloat())
+                
+                // Change card border color based on temperature
+                updateTemperatureCardUI(tempValue)
+                
+                // Save to temperature history (throttled to every 5 minutes)
+                saveTemperatureHistory(tempValue)
+                
+                // Check for temperature alerts
+                checkTemperatureAlert(tempValue)
             }
             override fun onCancelled(error: DatabaseError) {}
         })
@@ -325,6 +470,14 @@ class DashboardFragment : Fragment() {
         val ledColor = ContextCompat.getColor(context, if (isOn) R.color.led_on else R.color.led_off)
         controlBinding.statusIndicator.backgroundTintList = ColorStateList.valueOf(ledColor)
         
+        // Apply heartbeat pulse animation when ON, stop when OFF
+        if (isOn) {
+            val pulseAnimation = AnimationUtils.loadAnimation(context, R.anim.pulse_heartbeat)
+            controlBinding.statusIndicator.startAnimation(pulseAnimation)
+        } else {
+            controlBinding.statusIndicator.clearAnimation()
+        }
+        
         // Industrial toggle button styling
         val onActiveColor = ContextCompat.getColor(context, R.color.industrial_on_active)
         val offActiveColor = ContextCompat.getColor(context, R.color.industrial_off_active)
@@ -345,9 +498,161 @@ class DashboardFragment : Fragment() {
         val log = LogEntry(System.currentTimeMillis(), action, details)
         database.child("logs").push().setValue(log)
     }
+    
+    /**
+     * Update temperature card UI based on temperature value
+     */
+    private fun updateTemperatureCardUI(temp: Double) {
+        if (_binding == null || !isAdded) return
+        val ctx = context ?: return
+        
+        // Don't change if offline
+        if (!isConnected) return
+        
+        val strokeColor = when {
+            temp > targetHigh -> ContextCompat.getColor(ctx, R.color.industrial_off_active) // Red - too hot
+            temp < targetLow && temp > 0 -> ContextCompat.getColor(ctx, R.color.primary_teal) // Teal - warming up
+            else -> ContextCompat.getColor(ctx, R.color.industrial_stroke) // Normal
+        }
+        binding.cardTemperature.strokeColor = strokeColor
+    }
+    
+    /**
+     * Save temperature reading to history (throttled to every 5 minutes)
+     */
+    private fun saveTemperatureHistory(temp: Double) {
+        val currentTime = System.currentTimeMillis()
+        
+        // Only save if enough time has passed since last save
+        if (currentTime - lastTempSaveTime < TEMP_SAVE_INTERVAL) return
+        
+        // Don't save invalid readings
+        if (temp <= 0 || temp > 500) return
+        
+        lastTempSaveTime = currentTime
+        
+        val historyEntry = mapOf(
+            "timestamp" to currentTime,
+            "value" to temp
+        )
+        
+        database.child("temperature_history").push().setValue(historyEntry)
+    }
+    
+    /**
+     * Check if temperature exceeds thresholds and show alert
+     */
+    private fun checkTemperatureAlert(temp: Double) {
+        val currentTime = System.currentTimeMillis()
+        
+        // Don't alert for invalid readings
+        if (temp <= 0 || temp > 500) return
+        
+        // Determine alert type
+        val alertType = when {
+            temp > targetHigh + 10 -> "critical_high"  // 10°C above target
+            temp > targetHigh -> "high"
+            temp < targetLow - 20 && temp > 0 -> "low"  // 20°C below target (warming up)
+            else -> null
+        }
+        
+        // No alert needed or same alert within cooldown
+        if (alertType == null) {
+            lastAlertType = null
+            return
+        }
+        
+        // Check cooldown (unless it's a different/worse alert type)
+        val shouldAlert = when {
+            lastAlertType == null -> true
+            alertType == "critical_high" && lastAlertType != "critical_high" -> true
+            alertType != lastAlertType -> currentTime - lastAlertTime > ALERT_COOLDOWN
+            else -> currentTime - lastAlertTime > ALERT_COOLDOWN * 5 // Longer cooldown for same alert
+        }
+        
+        if (shouldAlert) {
+            lastAlertTime = currentTime
+            lastAlertType = alertType
+            showTemperatureAlert(temp, alertType)
+        }
+    }
+    
+    /**
+     * Show temperature alert notification
+     */
+    private fun showTemperatureAlert(temp: Double, alertType: String) {
+        val ctx = context ?: return
+        
+        // Check permission for Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    ctx,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
+        }
+        
+        val (title, message, priority) = when (alertType) {
+            "critical_high" -> Triple(
+                "⚠️ CRITICAL: Temperature Too High!",
+                "Temperature is ${String.format("%.1f", temp)}°C - Exceeds safe limit by ${String.format("%.1f", temp - targetHigh)}°C",
+                NotificationCompat.PRIORITY_MAX
+            )
+            "high" -> Triple(
+                "Temperature Warning",
+                "Temperature is ${String.format("%.1f", temp)}°C - Above target range (${targetHigh.toInt()}°C)",
+                NotificationCompat.PRIORITY_HIGH
+            )
+            "low" -> Triple(
+                "Temperature Low",
+                "Temperature is ${String.format("%.1f", temp)}°C - Below target range (${targetLow.toInt()}°C)",
+                NotificationCompat.PRIORITY_DEFAULT
+            )
+            else -> return
+        }
+        
+        // Create intent to open app when notification is tapped
+        val intent = Intent(ctx, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            ctx, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val notification = NotificationCompat.Builder(ctx, IpoTechApplication.CHANNEL_TEMP_ALERTS)
+            .setSmallIcon(R.drawable.ic_dashboard)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(priority)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setVibrate(longArrayOf(0, 500, 200, 500))
+            .build()
+        
+        val notificationManager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIFICATION_ID_TEMP, notification)
+        
+        // Also vibrate
+        vibrate()
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // Clear animations to prevent memory leaks
+        _binding?.controlHeater?.statusIndicator?.clearAnimation()
+        _binding?.controlConveyor?.statusIndicator?.clearAnimation()
+        _binding?.controlPulverizer?.statusIndicator?.clearAnimation()
+        
+        // Remove connection listener
+        connectionListener?.let {
+            FirebaseDatabase.getInstance("https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/")
+                .getReference(".info/connected")
+                .removeEventListener(it)
+        }
+        
         _binding = null
         conveyorTimer?.cancel()
         heaterTimer?.cancel()
