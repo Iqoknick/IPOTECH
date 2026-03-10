@@ -65,6 +65,29 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tv_next_run"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="monospace"
+                        android:text="Next Run: --:-- --"
+                        android:textColor="@color/primary_teal"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/tv_countdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="monospace"
+                        android:text="Starts in: --"
+                        android:textColor="@color/industrial_text_inactive"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+
+                    <TextView
                         android:id="@+id/tv_last_modified"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -331,6 +354,7 @@
 
             <!-- Morning Schedule Card -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_morning"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
@@ -414,6 +438,7 @@
 
             <!-- Evening Schedule Card -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_evening"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"

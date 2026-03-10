@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
+    android:background="@color/background_light"
     tools:context=".TrendsFragment">
 
     <!-- Header Card -->
@@ -12,10 +12,12 @@
         android:id="@+id/card_header"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        app:cardBackgroundColor="@color/card_background"
-        app:cardCornerRadius="12dp"
+        android:layout_margin="12dp"
+        app:cardBackgroundColor="@color/btn_active_off"
+        app:cardCornerRadius="8dp"
         app:cardElevation="4dp"
+        app:strokeColor="@color/industrial_stroke"
+        app:strokeWidth="1dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -30,9 +32,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Temperature History"
-                android:textColor="@color/text_primary"
+                android:textColor="@android:color/white"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-condensed" />
 
             <TextView
                 android:id="@+id/tv_current_temp"
@@ -40,8 +43,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="Current: --°C"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
+                android:textColor="@color/led_on"
+                android:textSize="14sp"
+                android:fontFamily="monospace" />
 
             <!-- Time range selector -->
             <com.google.android.material.chip.ChipGroup
@@ -57,7 +61,12 @@
                     style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="1H" />
+                    android:text="1H"
+                    android:textColor="@color/industrial_text_inactive"
+                    app:chipBackgroundColor="@color/industrial_stroke"
+                    app:checkedIconVisible="false"
+                    app:chipStrokeColor="@color/primary_teal"
+                    app:chipStrokeWidth="0dp" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_6h"
@@ -65,21 +74,36 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="6H"
-                    android:checked="true" />
+                    android:checked="true"
+                    android:textColor="@color/industrial_text_inactive"
+                    app:chipBackgroundColor="@color/industrial_stroke"
+                    app:checkedIconVisible="false"
+                    app:chipStrokeColor="@color/primary_teal"
+                    app:chipStrokeWidth="0dp" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_24h"
                     style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="24H" />
+                    android:text="24H"
+                    android:textColor="@color/industrial_text_inactive"
+                    app:chipBackgroundColor="@color/industrial_stroke"
+                    app:checkedIconVisible="false"
+                    app:chipStrokeColor="@color/primary_teal"
+                    app:chipStrokeWidth="0dp" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_7d"
                     style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="7D" />
+                    android:text="7D"
+                    android:textColor="@color/industrial_text_inactive"
+                    app:chipBackgroundColor="@color/industrial_stroke"
+                    app:checkedIconVisible="false"
+                    app:chipStrokeColor="@color/primary_teal"
+                    app:chipStrokeWidth="0dp" />
 
             </com.google.android.material.chip.ChipGroup>
 
@@ -92,10 +116,12 @@
         android:id="@+id/card_chart"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_margin="16dp"
-        app:cardBackgroundColor="@color/card_background"
-        app:cardCornerRadius="12dp"
+        android:layout_margin="12dp"
+        app:cardBackgroundColor="@color/btn_active_off"
+        app:cardCornerRadius="8dp"
         app:cardElevation="4dp"
+        app:strokeColor="@color/industrial_stroke"
+        app:strokeWidth="1dp"
         app:layout_constraintBottom_toTopOf="@+id/card_stats"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -126,7 +152,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:text="No temperature history available"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/industrial_text_inactive"
                 android:textSize="14sp"
                 android:visibility="gone" />
 
@@ -139,10 +165,12 @@
         android:id="@+id/card_stats"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        app:cardBackgroundColor="@color/card_background"
-        app:cardCornerRadius="12dp"
+        android:layout_margin="12dp"
+        app:cardBackgroundColor="@color/btn_active_off"
+        app:cardCornerRadius="8dp"
         app:cardElevation="4dp"
+        app:strokeColor="@color/industrial_stroke"
+        app:strokeWidth="1dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -165,8 +193,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="MIN"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
+                    android:textColor="@color/industrial_text_inactive"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-condensed" />
 
                 <TextView
                     android:id="@+id/tv_min_temp"
@@ -182,7 +211,7 @@
             <View
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
-                android:background="@color/divider" />
+                android:background="@color/industrial_stroke" />
 
             <!-- Average Temperature -->
             <LinearLayout
@@ -196,8 +225,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="AVG"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
+                    android:textColor="@color/industrial_text_inactive"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-condensed" />
 
                 <TextView
                     android:id="@+id/tv_avg_temp"
@@ -213,7 +243,7 @@
             <View
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
-                android:background="@color/divider" />
+                android:background="@color/industrial_stroke" />
 
             <!-- Max Temperature -->
             <LinearLayout
@@ -227,8 +257,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="MAX"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
+                    android:textColor="@color/industrial_text_inactive"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-condensed" />
 
                 <TextView
                     android:id="@+id/tv_max_temp"

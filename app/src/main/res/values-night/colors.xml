@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark mode colors -->
+    <color name="primary_dark_teal">#004D40</color>
+    <color name="primary_teal">#00897B</color>
+    <color name="accent_green">#69F0AE</color>
+    <color name="status_active">#00E676</color>
+    <color name="status_idle">#9E9E9E</color>
+    <color name="button_off">#9E9E9E</color>
+    <color name="exit_red">#EF5350</color>
+    <color name="background_light">#121212</color>
+    <color name="card_background">#1E1E1E</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    
+    <!-- Text colors (dark mode) -->
+    <color name="text_primary">#E0E0E0</color>
+    <color name="text_secondary">#9E9E9E</color>
+    
+    <!-- Common UI colors (dark mode) -->
+    <color name="background">#121212</color>
+    <color name="primary">#00897B</color>
+    <color name="accent">#69F0AE</color>
+    <color name="divider">#2C2C2C</color>
+
+    <color name="btn_active_on">#2E7D32</color>
+    <color name="btn_active_off">#263238</color>
+    <color name="btn_inactive">#424242</color>
+
+    <!-- Industrial toggle button colors (dark mode) -->
+    <color name="industrial_on_active">#00E676</color>
+    <color name="industrial_on_inactive">#37474F</color>
+    <color name="industrial_off_active">#EF5350</color>
+    <color name="industrial_off_inactive">#37474F</color>
+    <color name="industrial_text_active">#FFFFFF</color>
+    <color name="industrial_text_inactive">#90A4AE</color>
+    <color name="industrial_stroke">#37474F</color>
+    <color name="industrial_card_bg">#1E1E1E</color>
+    
+    <!-- LED indicator colors (dark mode - slightly brighter for visibility) -->
+    <color name="led_on">#69F0AE</color>
+    <color name="led_on_glow">#B9F6CA</color>
+    <color name="led_off">#37474F</color>
+    <color name="led_off_dim">#263238</color>
+
+    <!-- Legacy support (dark mode) -->
+    <color name="toggle_on_bg">#00E676</color>
+    <color name="toggle_on_text">#000000</color>
+    <color name="toggle_off_bg">#EF5350</color>
+    <color name="toggle_off_text">#FFFFFF</color>
+    <color name="toggle_inactive_bg">#37474F</color>
+    <color name="toggle_inactive_text">#90A4AE</color>
+    <color name="toggle_neutral_inactive">#37474F</color>
+</resources>

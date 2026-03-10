@@ -19,8 +19,8 @@
 
         <View
             android:id="@+id/status_indicator"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:background="@drawable/led_indicator"
             android:backgroundTint="@color/led_off" />
 

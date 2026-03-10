@@ -4,8 +4,10 @@ import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
+import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
@@ -19,6 +21,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var appBarConfiguration: AppBarConfiguration
+    private lateinit var navController: NavController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,10 +33,11 @@ class MainActivity : AppCompatActivity() {
 
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        val navController = navHostFragment.navController
+        navController = navHostFragment.navController
         
+        // Only Dashboard is true top-level destination
         appBarConfiguration = AppBarConfiguration(
-            setOf(R.id.nav_dashboard, R.id.nav_scheduler),
+            setOf(R.id.nav_dashboard),
             binding.drawerLayout
         )
         
@@ -54,6 +58,26 @@ class MainActivity : AppCompatActivity() {
             }
             handled
         }
+        
+        // Handle back gesture navigation properly
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                when {
+                    // Close drawer if open
+                    binding.drawerLayout.isDrawerOpen(GravityCompat.START) -> {
+                        binding.drawerLayout.closeDrawer(GravityCompat.START)
+                    }
+                    // Not on dashboard - open drawer menu
+                    navController.currentDestination?.id != R.id.nav_dashboard -> {
+                        binding.drawerLayout.openDrawer(GravityCompat.START)
+                    }
+                    // On dashboard, exit app
+                    else -> {
+                        finish()
+                    }
+                }
+            }
+        })
 
         // Test Mode: Start background worker immediately without Auth
         startScheduleWorker()

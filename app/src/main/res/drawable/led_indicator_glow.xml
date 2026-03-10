@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Main LED body with built-in glow -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#00FF88" />
+            <stroke android:width="3dp" android:color="#4000FF88" />
+        </shape>
+    </item>
+    <!-- Inner highlight for 3D effect -->
+    <item android:left="4dp" android:top="3dp" android:right="6dp" android:bottom="8dp">
+        <shape android:shape="oval">
+            <solid android:color="#60FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

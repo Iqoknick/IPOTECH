@@ -1,19 +1,26 @@
 package com.example.ipotech
 
+import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.example.ipotech.databinding.FragmentTrendsBinding
+import com.github.mikephil.charting.components.LimitLine
+import com.github.mikephil.charting.components.MarkerView
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.github.mikephil.charting.highlight.Highlight
+import com.github.mikephil.charting.utils.MPPointF
+import com.google.android.material.chip.Chip
 import com.google.firebase.database.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -34,6 +41,9 @@ class TrendsFragment : Fragment() {
     private val TIME_7D = 7 * 24 * 60 * 60 * 1000L
 
     private var selectedTimeRange = TIME_6H
+    
+    // Critical threshold from settings
+    private var criticalThreshold = 35f
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -48,10 +58,40 @@ class TrendsFragment : Fragment() {
 
         database = FirebaseDatabase.getInstance("https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/").reference
 
+        loadCriticalThreshold()
         setupChart()
         setupTimeRangeChips()
+        setupChipStyling()
         setupCurrentTempListener()
         loadTemperatureHistory()
+    }
+    
+    private fun loadCriticalThreshold() {
+        val prefs = requireContext().getSharedPreferences("ipotech_settings", Context.MODE_PRIVATE)
+        criticalThreshold = prefs.getInt("critical_threshold", 35).toFloat()
+    }
+    
+    private fun setupChipStyling() {
+        val chips = listOf(binding.chip1h, binding.chip6h, binding.chip24h, binding.chip7d)
+        chips.forEach { chip ->
+            updateChipStyle(chip, chip.isChecked)
+            chip.setOnCheckedChangeListener { _, isChecked ->
+                updateChipStyle(chip, isChecked)
+            }
+        }
+    }
+    
+    private fun updateChipStyle(chip: Chip, isChecked: Boolean) {
+        val ctx = context ?: return
+        if (isChecked) {
+            chip.setChipBackgroundColorResource(R.color.primary_teal)
+            chip.setTextColor(ContextCompat.getColor(ctx, android.R.color.white))
+            chip.chipStrokeWidth = 0f
+        } else {
+            chip.setChipBackgroundColorResource(R.color.industrial_stroke)
+            chip.setTextColor(ContextCompat.getColor(ctx, R.color.industrial_text_inactive))
+            chip.chipStrokeWidth = 0f
+        }
     }
 
     private fun setupChart() {
@@ -62,17 +102,23 @@ class TrendsFragment : Fragment() {
             setScaleEnabled(true)
             setPinchZoom(true)
             setDrawGridBackground(false)
+            setBackgroundColor(Color.TRANSPARENT)
             
-            // Legend
-            legend.textColor = ContextCompat.getColor(requireContext(), R.color.text_primary)
-            legend.isEnabled = true
+            // Custom marker for touch interaction
+            marker = TempMarkerView(requireContext())
+            
+            // Legend - white text for dark theme
+            legend.textColor = Color.WHITE
+            legend.isEnabled = false // Hide legend since it's obvious
 
-            // X-Axis (Time)
+            // X-Axis (Time) - styled for dark theme
             xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
-                textColor = ContextCompat.getColor(requireContext(), R.color.text_secondary)
+                textColor = ContextCompat.getColor(requireContext(), R.color.industrial_text_inactive)
                 setDrawGridLines(true)
-                gridColor = ContextCompat.getColor(requireContext(), R.color.divider)
+                gridColor = ContextCompat.getColor(requireContext(), R.color.industrial_stroke)
+                gridLineWidth = 0.5f
+                enableGridDashedLine(10f, 5f, 0f)
                 granularity = 1f
                 valueFormatter = object : ValueFormatter() {
                     private val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -82,11 +128,13 @@ class TrendsFragment : Fragment() {
                 }
             }
 
-            // Y-Axis (Temperature)
+            // Y-Axis (Temperature) - will be auto-scaled when data loads
             axisLeft.apply {
-                textColor = ContextCompat.getColor(requireContext(), R.color.text_secondary)
+                textColor = ContextCompat.getColor(requireContext(), R.color.industrial_text_inactive)
                 setDrawGridLines(true)
-                gridColor = ContextCompat.getColor(requireContext(), R.color.divider)
+                gridColor = ContextCompat.getColor(requireContext(), R.color.industrial_stroke)
+                gridLineWidth = 0.5f
+                enableGridDashedLine(10f, 5f, 0f)
                 axisMinimum = 0f
                 axisMaximum = 200f
                 valueFormatter = object : ValueFormatter() {
@@ -190,27 +238,48 @@ class TrendsFragment : Fragment() {
                     binding.tvMinTemp.text = "${String.format("%.1f", minTemp)}°C"
                     binding.tvAvgTemp.text = "${String.format("%.1f", avgTemp)}°C"
                     binding.tvMaxTemp.text = "${String.format("%.1f", maxTemp)}°C"
+                    
+                    // Auto-scale Y-axis with padding
+                    val padding = (maxTemp - minTemp) * 0.2f
+                    val yMin = (minTemp - padding).coerceAtLeast(0f)
+                    val yMax = maxTemp + padding
+                    binding.lineChart.axisLeft.axisMinimum = yMin
+                    binding.lineChart.axisLeft.axisMaximum = yMax
+                    
+                    // Add critical threshold limit line
+                    binding.lineChart.axisLeft.removeAllLimitLines()
+                    if (criticalThreshold in yMin..yMax) {
+                        val limitLine = LimitLine(criticalThreshold, "Critical ${criticalThreshold.toInt()}°C").apply {
+                            lineWidth = 1.5f
+                            lineColor = ContextCompat.getColor(requireContext(), R.color.exit_red)
+                            enableDashedLine(10f, 5f, 0f)
+                            labelPosition = LimitLine.LimitLabelPosition.RIGHT_TOP
+                            textSize = 10f
+                            textColor = ContextCompat.getColor(requireContext(), R.color.exit_red)
+                        }
+                        binding.lineChart.axisLeft.addLimitLine(limitLine)
+                    }
 
-                    // Create dataset
+                    // Create dataset - styled for dark theme
                     val dataSet = LineDataSet(entries, "Temperature").apply {
-                        color = ContextCompat.getColor(requireContext(), R.color.primary)
-                        lineWidth = 2f
+                        color = ContextCompat.getColor(requireContext(), R.color.led_on)
+                        lineWidth = 2.5f
                         setDrawCircles(entries.size < 50) // Only show circles if few data points
-                        circleRadius = 3f
-                        setCircleColor(ContextCompat.getColor(requireContext(), R.color.primary))
+                        circleRadius = 4f
+                        setCircleColor(ContextCompat.getColor(requireContext(), R.color.led_on))
+                        circleHoleColor = ContextCompat.getColor(requireContext(), R.color.btn_active_off)
+                        circleHoleRadius = 2f
                         setDrawValues(false)
                         mode = LineDataSet.Mode.CUBIC_BEZIER
                         setDrawFilled(true)
-                        fillColor = ContextCompat.getColor(requireContext(), R.color.primary)
-                        fillAlpha = 30
+                        fillColor = ContextCompat.getColor(requireContext(), R.color.led_on)
+                        fillAlpha = 40
                         
-                        // Highlight
-                        highLightColor = ContextCompat.getColor(requireContext(), R.color.accent)
+                        // Highlight on touch
+                        highLightColor = ContextCompat.getColor(requireContext(), R.color.primary_teal)
                         setDrawHighlightIndicators(true)
+                        highlightLineWidth = 1.5f
                     }
-
-                    // Add limit lines for target range (if you want to show target zone)
-                    binding.lineChart.axisLeft.removeAllLimitLines()
 
                     binding.lineChart.data = LineData(dataSet)
                     binding.lineChart.invalidate()
@@ -235,5 +304,27 @@ class TrendsFragment : Fragment() {
             database.child("temperature_history").removeEventListener(it)
         }
         _binding = null
+    }
+    
+    /**
+     * Custom marker view for showing temperature on touch
+     */
+    inner class TempMarkerView(context: Context) : MarkerView(context, R.layout.chart_marker) {
+        
+        private val tvContent: TextView = findViewById(R.id.tv_marker_content)
+        private val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        
+        override fun refreshContent(e: Entry?, highlight: Highlight?) {
+            e?.let {
+                val time = dateFormat.format(Date(e.x.toLong()))
+                val temp = String.format("%.1f°C", e.y)
+                tvContent.text = "$temp\n$time"
+            }
+            super.refreshContent(e, highlight)
+        }
+        
+        override fun getOffset(): MPPointF {
+            return MPPointF((-(width / 2)).toFloat(), (-height - 10).toFloat())
+        }
     }
 }

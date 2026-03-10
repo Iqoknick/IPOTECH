@@ -53,14 +53,16 @@ class DashboardFragment : Fragment() {
     private var connectionListener: ValueEventListener? = null
     private var isConnected = true
     
-    // Temperature history saving (throttle to every 5 minutes)
+    // Temperature history saving (will be loaded from settings)
     private var lastTempSaveTime = 0L
-    private val TEMP_SAVE_INTERVAL = 5 * 60 * 1000L // 5 minutes
+    private var tempSaveInterval = 5 * 60 * 1000L // Default 5 minutes
     
-    // Temperature alert tracking (avoid notification spam)
+    // Temperature alert tracking (will be loaded from settings)
     private var lastAlertTime = 0L
-    private val ALERT_COOLDOWN = 60 * 1000L // 1 minute between alerts
-    private var lastAlertType: String? = null // "high", "low", or null
+    private var alertCooldown = 60 * 1000L // Default 1 minute
+    private var criticalThreshold = 10 // Default 10°C above target
+    private var vibrationEnabled = true
+    private var lastAlertType: String? = null
     private val NOTIFICATION_ID_TEMP = 1001
     
     // Permission request launcher
@@ -85,6 +87,7 @@ class DashboardFragment : Fragment() {
 
         database = FirebaseDatabase.getInstance("https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/").reference
 
+        loadSettings()
         setupRecyclerView()
         setupControls()
         setupEmergencyStop()
@@ -96,6 +99,18 @@ class DashboardFragment : Fragment() {
         // Initialize temperature gauge thresholds
         binding.temperatureGauge.setThresholds(targetLow.toFloat(), targetHigh.toFloat())
         binding.temperatureGauge.setRange(0f, 200f)
+    }
+    
+    /**
+     * Load settings from SharedPreferences
+     */
+    private fun loadSettings() {
+        val prefs = requireContext().getSharedPreferences(SettingsFragment.PREFS_NAME, Context.MODE_PRIVATE)
+        
+        criticalThreshold = prefs.getInt(SettingsFragment.KEY_CRITICAL_THRESHOLD, 10)
+        alertCooldown = prefs.getInt(SettingsFragment.KEY_ALERT_COOLDOWN, 1) * 60 * 1000L
+        vibrationEnabled = prefs.getBoolean(SettingsFragment.KEY_VIBRATION_ENABLED, true)
+        tempSaveInterval = prefs.getInt(SettingsFragment.KEY_SAVE_INTERVAL, 5) * 60 * 1000L
     }
     
     /**
@@ -117,6 +132,7 @@ class DashboardFragment : Fragment() {
      * Vibrate the device for haptic feedback
      */
     private fun vibrate(durationMs: Long = 50, isStrong: Boolean = false) {
+        if (!vibrationEnabled) return
         val ctx = context ?: return
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -466,15 +482,17 @@ class DashboardFragment : Fragment() {
         if (_binding == null || !isAdded) return
         val context = context ?: return
         
-        // Industrial LED indicator: bright green when ON, dark gray when OFF
-        val ledColor = ContextCompat.getColor(context, if (isOn) R.color.led_on else R.color.led_off)
-        controlBinding.statusIndicator.backgroundTintList = ColorStateList.valueOf(ledColor)
-        
-        // Apply heartbeat pulse animation when ON, stop when OFF
+        // Industrial LED indicator: use glow drawable when ON, regular when OFF
         if (isOn) {
+            controlBinding.statusIndicator.setBackgroundResource(R.drawable.led_indicator_glow)
+            controlBinding.statusIndicator.backgroundTintList = null // Use drawable colors
             val pulseAnimation = AnimationUtils.loadAnimation(context, R.anim.pulse_heartbeat)
             controlBinding.statusIndicator.startAnimation(pulseAnimation)
         } else {
+            controlBinding.statusIndicator.setBackgroundResource(R.drawable.led_indicator)
+            controlBinding.statusIndicator.backgroundTintList = ColorStateList.valueOf(
+                ContextCompat.getColor(context, R.color.led_off)
+            )
             controlBinding.statusIndicator.clearAnimation()
         }
         
@@ -518,13 +536,13 @@ class DashboardFragment : Fragment() {
     }
     
     /**
-     * Save temperature reading to history (throttled to every 5 minutes)
+     * Save temperature reading to history (throttled based on settings)
      */
     private fun saveTemperatureHistory(temp: Double) {
         val currentTime = System.currentTimeMillis()
         
         // Only save if enough time has passed since last save
-        if (currentTime - lastTempSaveTime < TEMP_SAVE_INTERVAL) return
+        if (currentTime - lastTempSaveTime < tempSaveInterval) return
         
         // Don't save invalid readings
         if (temp <= 0 || temp > 500) return
@@ -550,7 +568,7 @@ class DashboardFragment : Fragment() {
         
         // Determine alert type
         val alertType = when {
-            temp > targetHigh + 10 -> "critical_high"  // 10°C above target
+            temp > targetHigh + criticalThreshold -> "critical_high"  // Above target by threshold
             temp > targetHigh -> "high"
             temp < targetLow - 20 && temp > 0 -> "low"  // 20°C below target (warming up)
             else -> null
@@ -566,8 +584,8 @@ class DashboardFragment : Fragment() {
         val shouldAlert = when {
             lastAlertType == null -> true
             alertType == "critical_high" && lastAlertType != "critical_high" -> true
-            alertType != lastAlertType -> currentTime - lastAlertTime > ALERT_COOLDOWN
-            else -> currentTime - lastAlertTime > ALERT_COOLDOWN * 5 // Longer cooldown for same alert
+            alertType != lastAlertType -> currentTime - lastAlertTime > alertCooldown
+            else -> currentTime - lastAlertTime > alertCooldown * 5 // Longer cooldown for same alert
         }
         
         if (shouldAlert) {

@@ -7,6 +7,8 @@ import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
@@ -27,6 +29,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ServerValue
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class SchedulerFragment : Fragment() {
 
@@ -38,6 +41,12 @@ class SchedulerFragment : Fragment() {
     
     private val displaySdf = SimpleDateFormat("hh:mm a", Locale.US)
     private val storageSdf = SimpleDateFormat("HH:mm", Locale.US)
+    
+    // Countdown timer
+    private val countdownHandler = Handler(Looper.getMainLooper())
+    private var countdownRunnable: Runnable? = null
+    private var nextRunTimeMillis: Long = 0
+    private var nextRunLabel: String = ""
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -56,6 +65,7 @@ class SchedulerFragment : Fragment() {
         setupPickers()
         setupMasterSwitch()
         setupDayToggleListener()
+        setupScheduleSwitchListeners()
         loadSchedule()
         setupStatusListener()
         setupUIFocusHandling()
@@ -65,12 +75,34 @@ class SchedulerFragment : Fragment() {
             hideKeyboardAndClearFocus()
         }
     }
+    
+    private fun setupScheduleSwitchListeners() {
+        binding.switchMorning.setOnCheckedChangeListener { _, isChecked ->
+            updateScheduleCardStyle(binding.cardMorning, isChecked)
+            updateNextRunDisplay()
+        }
+        binding.switchAfternoon.setOnCheckedChangeListener { _, isChecked ->
+            updateScheduleCardStyle(binding.cardEvening, isChecked)
+            updateNextRunDisplay()
+        }
+    }
+    
+    private fun updateScheduleCardStyle(card: com.google.android.material.card.MaterialCardView, isEnabled: Boolean) {
+        val ctx = context ?: return
+        if (isEnabled) {
+            card.strokeColor = ContextCompat.getColor(ctx, R.color.primary_teal)
+            card.strokeWidth = 2
+        } else {
+            card.strokeColor = ContextCompat.getColor(ctx, R.color.industrial_stroke)
+            card.strokeWidth = 1
+        }
+    }
 
     private fun setupDayToggleListener() {
         val buttons = listOf(
             binding.btnSun, binding.btnMon, binding.btnTue, 
             binding.btnWed, binding.btnThu, binding.btnFri, binding.btnSat
-        )
+        ) 
         buttons.forEach { button ->
             button.addOnCheckedChangeListener { btn, isChecked ->
                 updateDayButtonVisuals(btn as MaterialButton, isChecked)
@@ -214,13 +246,150 @@ class SchedulerFragment : Fragment() {
             binding.cardStatus.strokeColor = ContextCompat.getColor(requireContext(), R.color.primary_teal)
             binding.tvSystemStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.led_on))
             binding.tvLastModified.setTextColor(ContextCompat.getColor(requireContext(), R.color.industrial_text_inactive))
+            updateNextRunDisplay()
         } else {
             binding.tvSystemStatus.text = getString(R.string.status_disabled)
             binding.cardStatus.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.btn_active_off))
             binding.cardStatus.strokeColor = ContextCompat.getColor(requireContext(), R.color.industrial_stroke)
             binding.tvSystemStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.industrial_text_inactive))
             binding.tvLastModified.setTextColor(ContextCompat.getColor(requireContext(), R.color.industrial_text_inactive))
+            hideNextRunDisplay()
         }
+    }
+    
+    private fun updateNextRunDisplay() {
+        if (_binding == null || !isAdded) return
+        
+        if (!binding.switchMaster.isChecked) {
+            hideNextRunDisplay()
+            return
+        }
+        
+        val now = Calendar.getInstance()
+        val todayDayCode = ((now.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY) + 1).toString()
+        
+        // Get active days
+        var activeDays = ""
+        if (binding.btnSun.isChecked) activeDays += "1"
+        if (binding.btnMon.isChecked) activeDays += "2"
+        if (binding.btnTue.isChecked) activeDays += "3"
+        if (binding.btnWed.isChecked) activeDays += "4"
+        if (binding.btnThu.isChecked) activeDays += "5"
+        if (binding.btnFri.isChecked) activeDays += "6"
+        if (binding.btnSat.isChecked) activeDays += "7"
+        
+        val candidates = mutableListOf<Pair<Long, String>>()
+        
+        // Check morning schedule
+        if (binding.switchMorning.isChecked) {
+            val morningTime = binding.btnMorningStart.tag?.toString() ?: "08:00"
+            val nextMorning = calculateNextRunTime(morningTime, activeDays)
+            if (nextMorning > 0) {
+                candidates.add(Pair(nextMorning, "Morning"))
+            }
+        }
+        
+        // Check evening schedule
+        if (binding.switchAfternoon.isChecked) {
+            val eveningTime = binding.btnAfternoonStart.tag?.toString() ?: "17:00"
+            val nextEvening = calculateNextRunTime(eveningTime, activeDays)
+            if (nextEvening > 0) {
+                candidates.add(Pair(nextEvening, "Evening"))
+            }
+        }
+        
+        if (candidates.isEmpty()) {
+            hideNextRunDisplay()
+            return
+        }
+        
+        // Find the soonest run
+        val (nextTime, label) = candidates.minByOrNull { it.first }!!
+        nextRunTimeMillis = nextTime
+        nextRunLabel = label
+        
+        val displayTime = displaySdf.format(Date(nextTime))
+        binding.tvNextRun.text = "Next Run: $displayTime ($label)"
+        binding.tvNextRun.visibility = View.VISIBLE
+        binding.tvCountdown.visibility = View.VISIBLE
+        
+        startCountdownTimer()
+    }
+    
+    private fun calculateNextRunTime(time24: String, activeDays: String): Long {
+        if (activeDays.isEmpty()) return 0
+        
+        val parts = time24.split(":")
+        if (parts.size != 2) return 0
+        
+        val hour = parts[0].toIntOrNull() ?: return 0
+        val minute = parts[1].toIntOrNull() ?: return 0
+        
+        val now = Calendar.getInstance()
+        val candidate = Calendar.getInstance()
+        
+        // Check next 7 days
+        for (dayOffset in 0..7) {
+            candidate.timeInMillis = now.timeInMillis
+            candidate.add(Calendar.DAY_OF_YEAR, dayOffset)
+            candidate.set(Calendar.HOUR_OF_DAY, hour)
+            candidate.set(Calendar.MINUTE, minute)
+            candidate.set(Calendar.SECOND, 0)
+            candidate.set(Calendar.MILLISECOND, 0)
+            
+            // Skip if time already passed today
+            if (candidate.timeInMillis <= now.timeInMillis) continue
+            
+            // Check if this day is active
+            val dayCode = ((candidate.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY) + 1).toString()
+            if (activeDays.contains(dayCode)) {
+                return candidate.timeInMillis
+            }
+        }
+        
+        return 0
+    }
+    
+    private fun startCountdownTimer() {
+        stopCountdownTimer()
+        
+        countdownRunnable = object : Runnable {
+            override fun run() {
+                if (_binding == null || !isAdded) return
+                
+                val remaining = nextRunTimeMillis - System.currentTimeMillis()
+                if (remaining <= 0) {
+                    binding.tvCountdown.text = "Starting now..."
+                    return
+                }
+                
+                val hours = TimeUnit.MILLISECONDS.toHours(remaining)
+                val minutes = TimeUnit.MILLISECONDS.toMinutes(remaining) % 60
+                val seconds = TimeUnit.MILLISECONDS.toSeconds(remaining) % 60
+                
+                binding.tvCountdown.text = when {
+                    hours > 0 -> String.format("Starts in: %dh %02dm", hours, minutes)
+                    minutes > 0 -> String.format("Starts in: %dm %02ds", minutes, seconds)
+                    else -> String.format("Starts in: %ds", seconds)
+                }
+                
+                countdownHandler.postDelayed(this, 1000)
+            }
+        }
+        
+        countdownHandler.post(countdownRunnable!!)
+    }
+    
+    private fun stopCountdownTimer() {
+        countdownRunnable?.let { countdownHandler.removeCallbacks(it) }
+        countdownRunnable = null
+    }
+    
+    private fun hideNextRunDisplay() {
+        if (_binding == null) return
+        stopCountdownTimer()
+        binding.tvNextRun.visibility = View.GONE
+        binding.tvCountdown.visibility = View.GONE
     }
 
     private fun loadSchedule() {
@@ -251,12 +420,14 @@ class SchedulerFragment : Fragment() {
                 binding.btnMorningStart.text = "START TIME: ${convertToDisplayTime(mTime)}"
                 binding.btnMorningStart.tag = mTime
                 binding.etMorningDuration.setText(it.child("morning/duration").value?.toString() ?: "0")
+                updateScheduleCardStyle(binding.cardMorning, binding.switchMorning.isChecked)
 
                 binding.switchAfternoon.isChecked = it.child("afternoon/enabled").getValue(Boolean::class.java) ?: false
                 val aTime = it.child("afternoon/start").value?.toString() ?: "13:00"
                 binding.btnAfternoonStart.text = "START TIME: ${convertToDisplayTime(aTime)}"
                 binding.btnAfternoonStart.tag = aTime
                 binding.etAfternoonDuration.setText(it.child("afternoon/duration").value?.toString() ?: "0")
+                updateScheduleCardStyle(binding.cardEvening, binding.switchAfternoon.isChecked)
                 
                 val lastMod = it.child("lastModified").getValue(Long::class.java)
                 if (lastMod != null) {
@@ -412,6 +583,7 @@ class SchedulerFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        stopCountdownTimer()
         _binding = null
     }
 }
