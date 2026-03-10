@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.core.view.GravityCompat
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
@@ -48,7 +49,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<android.view.View>(R.id.btn_exit_nav).setOnClickListener {
-            finish()
+            showExitConfirmDialog()
         }
 
         binding.navView.setNavigationItemSelectedListener { menuItem ->
@@ -71,9 +72,9 @@ class MainActivity : AppCompatActivity() {
                     navController.currentDestination?.id != R.id.nav_dashboard -> {
                         binding.drawerLayout.openDrawer(GravityCompat.START)
                     }
-                    // On dashboard, exit app
+                    // On dashboard, show exit confirmation
                     else -> {
-                        finish()
+                        showExitConfirmDialog()
                     }
                 }
             }
@@ -100,6 +101,19 @@ class MainActivity : AppCompatActivity() {
             ExistingPeriodicWorkPolicy.KEEP,
             workRequest
         )
+    }
+
+    private fun showExitConfirmDialog() {
+        MaterialAlertDialogBuilder(this, R.style.IndustrialAlertDialog)
+            .setTitle("Confirm System Exit")
+            .setMessage("Active monitoring session will be terminated.\n\nTemperature alerts will no longer be received.")
+            .setNegativeButton("Continue Monitoring") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setPositiveButton("Exit Application") { _, _ ->
+                finish()
+            }
+            .show()
     }
 
     override fun onSupportNavigateUp(): Boolean {

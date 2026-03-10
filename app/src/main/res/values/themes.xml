@@ -29,6 +29,48 @@
         <item name="android:letterSpacing">0.05</item>
     </style>
 
+    <!-- Industrial Alert Dialog Style -->
+    <style name="IndustrialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorPrimary">@color/primary_teal</item>
+        <item name="colorSurface">@color/card_background</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/IndustrialAlertDialog.Title</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/IndustrialAlertDialog.Body</item>
+        <item name="buttonBarPositiveButtonStyle">@style/IndustrialAlertDialog.PositiveButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/IndustrialAlertDialog.NegativeButton</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.IPOTech.Dialog</item>
+    </style>
+
+    <style name="ShapeAppearance.IPOTech.Dialog" parent="ShapeAppearance.MaterialComponents.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+
+    <style name="IndustrialAlertDialog.Title" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textColor">@color/exit_red</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:letterSpacing">0.02</item>
+    </style>
+
+    <style name="IndustrialAlertDialog.Body" parent="MaterialAlertDialog.MaterialComponents.Body.Text">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineSpacingExtra">4dp</item>
+    </style>
+
+    <style name="IndustrialAlertDialog.PositiveButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/exit_red</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+    </style>
+
+    <style name="IndustrialAlertDialog.NegativeButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/primary_teal</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+    </style>
+
     <!-- Industrial squared shapes -->
     <style name="ShapeAppearance.IPOTech.LeftRounded" parent="ShapeAppearance.MaterialComponents.SmallComponent">
         <item name="cornerFamily">rounded</item>

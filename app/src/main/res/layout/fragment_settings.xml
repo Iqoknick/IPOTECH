@@ -450,7 +450,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:gravity="center"
-                        android:text="Industrial Process Operations\nTemperature Monitoring System"
+                        android:text="Integrated Poultry Optimization Technology\nfor Organic Fertilizer Production"
                         android:textColor="@color/text_primary"
                         android:textSize="12sp" />
 
@@ -463,7 +463,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Developed with \u2764 for Industrial Excellence"
+                        android:text="Developed by IPO Systems Inc.\nIndustrial Process Operations"
                         android:textColor="@color/text_secondary"
                         android:textSize="11sp" />
 
