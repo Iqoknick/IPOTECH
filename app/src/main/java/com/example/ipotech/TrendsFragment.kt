@@ -137,6 +137,8 @@ class TrendsFragment : Fragment() {
                 enableGridDashedLine(10f, 5f, 0f)
                 axisMinimum = 0f
                 axisMaximum = 200f
+                setDrawLabels(true)
+                setLabelCount(6, true)
                 valueFormatter = object : ValueFormatter() {
                     override fun getFormattedValue(value: Float): String {
                         return "${value.toInt()}°C"
@@ -228,37 +230,32 @@ class TrendsFragment : Fragment() {
                         return
                     }
 
-                    binding.tvNoData.visibility = View.GONE
+                    // Optional enhancement: Show 'Not enough data' message
+                    if (entries.size < 2) {
+                        binding.tvNoData.visibility = View.VISIBLE
+                        binding.tvNoData.text = "Not enough data to show trend"
+                    } else {
+                        binding.tvNoData.visibility = View.GONE
+                    }
 
-                    // Sort entries by timestamp
-                    entries.sortBy { it.x }
-
-                    // Update statistics
-                    val avgTemp = totalTemp / entries.size
-                    binding.tvMinTemp.text = "${String.format("%.1f", minTemp)}°C"
-                    binding.tvAvgTemp.text = "${String.format("%.1f", avgTemp)}°C"
-                    binding.tvMaxTemp.text = "${String.format("%.1f", maxTemp)}°C"
-                    
                     // Auto-scale Y-axis with padding
                     val padding = (maxTemp - minTemp) * 0.2f
                     val yMin = (minTemp - padding).coerceAtLeast(0f)
                     val yMax = maxTemp + padding
                     binding.lineChart.axisLeft.axisMinimum = yMin
                     binding.lineChart.axisLeft.axisMaximum = yMax
-                    
-                    // Add critical threshold limit line
+
+                    // Always show critical threshold limit line
                     binding.lineChart.axisLeft.removeAllLimitLines()
-                    if (criticalThreshold in yMin..yMax) {
-                        val limitLine = LimitLine(criticalThreshold, "Critical ${criticalThreshold.toInt()}°C").apply {
-                            lineWidth = 1.5f
-                            lineColor = ContextCompat.getColor(requireContext(), R.color.exit_red)
-                            enableDashedLine(10f, 5f, 0f)
-                            labelPosition = LimitLine.LimitLabelPosition.RIGHT_TOP
-                            textSize = 10f
-                            textColor = ContextCompat.getColor(requireContext(), R.color.exit_red)
-                        }
-                        binding.lineChart.axisLeft.addLimitLine(limitLine)
+                    val limitLine = LimitLine(criticalThreshold, "Critical ${criticalThreshold.toInt()}°C").apply {
+                        lineWidth = 1.5f
+                        lineColor = ContextCompat.getColor(requireContext(), R.color.exit_red)
+                        enableDashedLine(10f, 5f, 0f)
+                        labelPosition = LimitLine.LimitLabelPosition.RIGHT_TOP
+                        textSize = 10f
+                        textColor = ContextCompat.getColor(requireContext(), R.color.exit_red)
                     }
+                    binding.lineChart.axisLeft.addLimitLine(limitLine)
 
                     // Create dataset - styled for dark theme
                     val dataSet = LineDataSet(entries, "Temperature").apply {
@@ -272,8 +269,9 @@ class TrendsFragment : Fragment() {
                         setDrawValues(false)
                         mode = LineDataSet.Mode.CUBIC_BEZIER
                         setDrawFilled(true)
-                        fillColor = ContextCompat.getColor(requireContext(), R.color.led_on)
-                        fillAlpha = 40
+                        // Use gradient drawable for fill
+                        fillDrawable = ContextCompat.getDrawable(requireContext(), R.drawable.chart_gradient_fill)
+                        fillAlpha = 90
                         
                         // Highlight on touch
                         highLightColor = ContextCompat.getColor(requireContext(), R.color.primary_teal)
