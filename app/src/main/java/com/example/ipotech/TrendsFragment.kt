@@ -39,7 +39,12 @@ class TrendsFragment : Fragment() {
     private val TIME_7D = 7 * 24 * 60 * 60 * 1000L
 
     private var selectedTimeRange = TIME_6H
-    private var criticalThreshold = 35f
+    private var criticalThreshold = 10f
+    private var targetLow = 120f
+    private var targetHigh = 130f
+    
+    // Used to prevent Float precision loss with large timestamps
+    private var chartReferenceTime = 0L
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -54,7 +59,7 @@ class TrendsFragment : Fragment() {
 
         database = FirebaseDatabase.getInstance("https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/").reference
 
-        loadCriticalThreshold()
+        loadSystemSettings()
         setupChart()
         setupTimeRangeChips()
         setupChipStyling()
@@ -62,11 +67,20 @@ class TrendsFragment : Fragment() {
         loadTemperatureHistory()
     }
     
-    private fun loadCriticalThreshold() {
+    private fun loadSystemSettings() {
         val context = context ?: return
         val prefs = context.getSharedPreferences(IpoTechApplication.PREFS_NAME, Context.MODE_PRIVATE)
         val thresholdStr = prefs.getString(IpoTechApplication.KEY_CRITICAL_THRESHOLD, "10") ?: "10"
         criticalThreshold = thresholdStr.toFloatOrNull() ?: 10f
+        
+        database.child("heater").addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                targetLow = snapshot.child("temp_low").getValue(Float::class.java) ?: 120f
+                targetHigh = snapshot.child("temp_high").getValue(Float::class.java) ?: 130f
+                if (isAdded) setupChart()
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        })
     }
     
     private fun setupChipStyling() {
@@ -94,6 +108,7 @@ class TrendsFragment : Fragment() {
 
     private fun setupChart() {
         if (_binding == null || !isAdded) return
+        val ctx = context ?: return
         
         binding.lineChart.apply {
             description.isEnabled = false
@@ -104,23 +119,25 @@ class TrendsFragment : Fragment() {
             setDrawGridBackground(false)
             setBackgroundColor(Color.TRANSPARENT)
             
-            val ctx = context ?: return@apply
             marker = TempMarkerView(ctx)
-            
             legend.isEnabled = false
 
             xAxis.apply {
                 position = XAxis.XAxisPosition.BOTTOM
                 textColor = ContextCompat.getColor(ctx, R.color.industrial_text_inactive)
                 setDrawGridLines(true)
-                gridColor = ContextCompat.getColor(ctx, R.color.industrial_stroke)
+                gridColor = Color.parseColor("#1AFFFFFF")
                 gridLineWidth = 0.5f
-                enableGridDashedLine(10f, 5f, 0f)
                 granularity = 1f
+                // Disable drawing axis line to prevent redundant baseline
+                setDrawAxisLine(false)
+                
                 valueFormatter = object : ValueFormatter() {
-                    private val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
                     override fun getFormattedValue(value: Float): String {
-                        return dateFormat.format(Date(value.toLong()))
+                        // Reconstruct timestamp using reference
+                        val actualTimestamp = value.toLong() + chartReferenceTime
+                        val format = if (selectedTimeRange >= TIME_7D) "MM/dd HH:mm" else "HH:mm"
+                        return SimpleDateFormat(format, Locale.getDefault()).format(Date(actualTimestamp))
                     }
                 }
             }
@@ -128,22 +145,39 @@ class TrendsFragment : Fragment() {
             axisLeft.apply {
                 textColor = ContextCompat.getColor(ctx, R.color.industrial_text_inactive)
                 setDrawGridLines(true)
-                gridColor = ContextCompat.getColor(ctx, R.color.industrial_stroke)
+                gridColor = Color.parseColor("#1AFFFFFF")
                 gridLineWidth = 0.5f
-                enableGridDashedLine(10f, 5f, 0f)
                 axisMinimum = 0f
                 axisMaximum = 200f
-                setDrawLabels(true)
-                setLabelCount(6, true)
+                setDrawAxisLine(false)
+                setLabelCount(6, false)
                 valueFormatter = object : ValueFormatter() {
-                    override fun getFormattedValue(value: Float): String {
-                        return "${value.toInt()}°C"
-                    }
+                    override fun getFormattedValue(value: Float) = "${value.toInt()}°C"
                 }
+                
+                removeAllLimitLines()
+                val rangeLine = LimitLine(targetHigh, "Target Max").apply {
+                    lineColor = ContextCompat.getColor(ctx, R.color.primary_teal)
+                    lineWidth = 1f
+                    enableDashedLine(10f, 10f, 0f)
+                    textColor = ContextCompat.getColor(ctx, R.color.primary_teal)
+                    textSize = 8f
+                }
+                addLimitLine(rangeLine)
+
+                val limit = targetHigh + criticalThreshold
+                val critLine = LimitLine(limit, "CRITICAL").apply {
+                    lineColor = ContextCompat.getColor(ctx, R.color.exit_red)
+                    lineWidth = 1.5f
+                    textColor = ContextCompat.getColor(ctx, R.color.exit_red)
+                    textSize = 9f
+                    labelPosition = LimitLine.LimitLabelPosition.RIGHT_TOP
+                }
+                addLimitLine(critLine)
             }
 
             axisRight.isEnabled = false
-            setNoDataText("Analyzing patterns...")
+            setNoDataText("Synchronizing data...")
             setNoDataTextColor(ContextCompat.getColor(ctx, R.color.industrial_text_inactive))
         }
     }
@@ -152,7 +186,6 @@ class TrendsFragment : Fragment() {
         if (_binding == null) return
         binding.chipGroupTimeRange.setOnCheckedStateChangeListener { _, checkedIds ->
             if (checkedIds.isEmpty()) return@setOnCheckedStateChangeListener
-            
             selectedTimeRange = when (checkedIds[0]) {
                 R.id.chip_1h -> TIME_1H
                 R.id.chip_6h -> TIME_6H
@@ -171,11 +204,15 @@ class TrendsFragment : Fragment() {
                 val temp = when (val value = snapshot.value) {
                     is Double -> value
                     is Long -> value.toDouble()
-                    else -> value?.toString()?.toDoubleOrNull()
+                    else -> value?.toString()?.toDoubleOrNull() ?: 0.0
                 }
-                if (temp != null) {
-                    binding.tvCurrentTemp.text = "Current: ${String.format("%.1f", temp)}°C"
+                binding.tvCurrentTemp.text = "Current: ${String.format("%.1f", temp)}°C"
+                val color = when {
+                    temp > targetHigh + criticalThreshold -> R.color.exit_red
+                    temp > targetHigh -> R.color.led_on
+                    else -> R.color.primary_teal
                 }
+                binding.tvCurrentTemp.setTextColor(ContextCompat.getColor(requireContext(), color))
             }
             override fun onCancelled(error: DatabaseError) {}
         })
@@ -189,6 +226,7 @@ class TrendsFragment : Fragment() {
         historyListener?.let { database.child("temperature_history").removeEventListener(it) }
 
         val cutoffTime = System.currentTimeMillis() - selectedTimeRange
+        chartReferenceTime = cutoffTime // Set new reference for this window
 
         historyListener = database.child("temperature_history")
             .orderByChild("timestamp")
@@ -196,7 +234,6 @@ class TrendsFragment : Fragment() {
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     if (_binding == null || !isAdded) return
-
                     binding.progressLoading.visibility = View.GONE
 
                     val entries = mutableListOf<Entry>()
@@ -213,7 +250,8 @@ class TrendsFragment : Fragment() {
                             else -> temperatureValue?.toString()?.toFloatOrNull() ?: continue
                         }
 
-                        entries.add(Entry(timestamp.toFloat(), temperature))
+                        // Use relative X to keep precision
+                        entries.add(Entry((timestamp - chartReferenceTime).toFloat(), temperature))
                         if (temperature < minTemp) minTemp = temperature
                         if (temperature > maxTemp) maxTemp = temperature
                         totalTemp += temperature
@@ -222,69 +260,38 @@ class TrendsFragment : Fragment() {
                     if (entries.isEmpty()) {
                         binding.tvNoData.visibility = View.VISIBLE
                         binding.lineChart.clear()
-                        binding.tvMinTemp.text = "--°C"
-                        binding.tvAvgTemp.text = "--°C"
-                        binding.tvMaxTemp.text = "--°C"
                         return
                     }
 
-                    binding.tvNoData.visibility = if (entries.size < 2) View.VISIBLE else View.GONE
-                    if (entries.size < 2) {
-                        binding.tvNoData.text = "Insufficient data points"
-                        binding.lineChart.clear()
-                        return
-                    }
-
-                    val avgTemp = totalTemp / entries.size
                     binding.tvMinTemp.text = "${minTemp.toInt()}°C"
                     binding.tvMaxTemp.text = "${maxTemp.toInt()}°C"
-                    binding.tvAvgTemp.text = "${avgTemp.toInt()}°C"
+                    binding.tvAvgTemp.text = "${(totalTemp / entries.size).toInt()}°C"
 
-                    // Auto-scale Y-axis
-                    val range = if (maxTemp == minTemp) 10f else (maxTemp - minTemp)
-                    val padding = range * 0.3f
+                    val padding = (maxTemp - minTemp).coerceAtLeast(20f) * 0.2f
                     binding.lineChart.axisLeft.axisMinimum = (minTemp - padding).coerceAtLeast(0f)
-                    binding.lineChart.axisLeft.axisMaximum = maxTemp + padding
+                    binding.lineChart.axisLeft.axisMaximum = (maxTemp + padding).coerceAtLeast(targetHigh + criticalThreshold + 10f)
 
-                    val ctx = context ?: return
-                    binding.lineChart.axisLeft.removeAllLimitLines()
-                    
-                    // Add critical threshold line if it's within a reasonable view
-                    val targetHigh = 130f // Your base target
-                    val limit = targetHigh + criticalThreshold
-                    val limitLine = LimitLine(limit, "Critical Limit").apply {
-                        lineWidth = 1.5f
-                        lineColor = ContextCompat.getColor(ctx, R.color.exit_red)
-                        enableDashedLine(10f, 5f, 0f)
-                        textColor = ContextCompat.getColor(ctx, R.color.exit_red)
-                        textSize = 10f
-                    }
-                    binding.lineChart.axisLeft.addLimitLine(limitLine)
-
-                    val dataSet = LineDataSet(entries, "Temperature").apply {
-                        color = ContextCompat.getColor(ctx, R.color.led_on)
-                        lineWidth = 2.5f
-                        setDrawCircles(entries.size < 30)
-                        circleRadius = 4f
-                        setCircleColor(ContextCompat.getColor(ctx, R.color.led_on))
-                        circleHoleColor = ContextCompat.getColor(ctx, R.color.btn_active_off)
+                    val dataSet = LineDataSet(entries, "Process Temperature").apply {
+                        color = ContextCompat.getColor(requireContext(), R.color.primary_teal)
+                        lineWidth = 2f
+                        setDrawCircles(selectedTimeRange <= TIME_1H)
+                        circleRadius = 3f
+                        setCircleColor(ContextCompat.getColor(requireContext(), R.color.primary_teal))
                         setDrawValues(false)
                         mode = LineDataSet.Mode.CUBIC_BEZIER
                         setDrawFilled(true)
-                        fillDrawable = ContextCompat.getDrawable(ctx, R.drawable.chart_gradient_fill)
-                        fillAlpha = 80
-                        highLightColor = ContextCompat.getColor(ctx, R.color.primary_teal)
-                        highlightLineWidth = 1.5f
+                        fillDrawable = ContextCompat.getDrawable(requireContext(), R.drawable.chart_gradient_fill)
+                        fillAlpha = 50
+                        highLightColor = Color.WHITE
+                        highlightLineWidth = 1f
+                        setDrawHorizontalHighlightIndicator(false)
                     }
 
                     binding.lineChart.data = LineData(dataSet)
                     binding.lineChart.invalidate()
                 }
-
                 override fun onCancelled(error: DatabaseError) {
-                    if (_binding == null) return
-                    binding.progressLoading.visibility = View.GONE
-                    binding.tvNoData.visibility = View.VISIBLE
+                    if (_binding != null) binding.progressLoading.visibility = View.GONE
                 }
             })
     }
@@ -298,10 +305,10 @@ class TrendsFragment : Fragment() {
     
     inner class TempMarkerView(context: Context) : MarkerView(context, R.layout.chart_marker) {
         private val tvContent: TextView = findViewById(R.id.tv_marker_content)
-        private val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         override fun refreshContent(e: Entry?, highlight: Highlight?) {
             e?.let {
-                val time = dateFormat.format(Date(e.x.toLong()))
+                val actualTimestamp = e.x.toLong() + chartReferenceTime
+                val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(actualTimestamp))
                 tvContent.text = "${String.format("%.1f", e.y)}°C\n$time"
             }
             super.refreshContent(e, highlight)
