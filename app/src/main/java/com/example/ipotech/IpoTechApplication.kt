@@ -16,6 +16,9 @@ class IpoTechApplication : Application() {
     companion object {
         const val CHANNEL_TEMP_ALERTS = "temperature_alerts"
         private const val DB_URL = "https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/"
+        const val PREFS_NAME = "ipotech_settings"
+        const val KEY_DARK_MODE = "dark_mode"
+        const val KEY_AUTO_CLEANUP = "auto_cleanup"
     }
     
     override fun onCreate() {
@@ -43,8 +46,8 @@ class IpoTechApplication : Application() {
     }
     
     private fun applyDarkModeSetting() {
-        val prefs = getSharedPreferences(SettingsFragment.PREFS_NAME, Context.MODE_PRIVATE)
-        val isDarkMode = prefs.getBoolean(SettingsFragment.KEY_DARK_MODE, false)
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val isDarkMode = prefs.getBoolean(KEY_DARK_MODE, false)
         
         if (isDarkMode) {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
@@ -54,8 +57,8 @@ class IpoTechApplication : Application() {
     }
     
     private fun runAutoCleanupIfEnabled() {
-        val prefs = getSharedPreferences(SettingsFragment.PREFS_NAME, Context.MODE_PRIVATE)
-        val autoCleanup = prefs.getBoolean(SettingsFragment.KEY_AUTO_CLEANUP, true)
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val autoCleanup = prefs.getBoolean(KEY_AUTO_CLEANUP, true)
         
         if (!autoCleanup) return
         

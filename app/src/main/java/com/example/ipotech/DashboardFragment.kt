@@ -104,13 +104,21 @@ class DashboardFragment : Fragment() {
     /**
      * Load settings from SharedPreferences
      */
+    companion object {
+        const val PREFS_NAME = "dashboard_prefs"
+        const val KEY_CRITICAL_THRESHOLD = "critical_threshold"
+        const val KEY_ALERT_COOLDOWN = "alert_cooldown"
+        const val KEY_VIBRATION_ENABLED = "vibration_enabled"
+        const val KEY_SAVE_INTERVAL = "save_interval"
+    }
+
     private fun loadSettings() {
-        val prefs = requireContext().getSharedPreferences(SettingsFragment.PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         
-        criticalThreshold = prefs.getInt(SettingsFragment.KEY_CRITICAL_THRESHOLD, 10)
-        alertCooldown = prefs.getInt(SettingsFragment.KEY_ALERT_COOLDOWN, 1) * 60 * 1000L
-        vibrationEnabled = prefs.getBoolean(SettingsFragment.KEY_VIBRATION_ENABLED, true)
-        tempSaveInterval = prefs.getInt(SettingsFragment.KEY_SAVE_INTERVAL, 5) * 60 * 1000L
+        criticalThreshold = prefs.getInt(KEY_CRITICAL_THRESHOLD, 10)
+        alertCooldown = prefs.getInt(KEY_ALERT_COOLDOWN, 1) * 60 * 1000L
+        vibrationEnabled = prefs.getBoolean(KEY_VIBRATION_ENABLED, true)
+        tempSaveInterval = prefs.getInt(KEY_SAVE_INTERVAL, 5) * 60 * 1000L
     }
     
     /**
