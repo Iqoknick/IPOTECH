@@ -22,4 +22,10 @@
         android:name="com.example.ipotech.TrendsFragment"
         android:label="Temperature Trends"
         tools:layout="@layout/fragment_trends" />
+
+    <fragment
+        android:id="@+id/nav_settings"
+        android:name="com.example.ipotech.SettingsFragment"
+        android:label="System Settings"
+        tools:layout="@layout/fragment_settings" />
 </navigation>

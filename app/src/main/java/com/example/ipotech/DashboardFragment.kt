@@ -13,6 +13,7 @@ import android.os.CountDownTimer
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -59,11 +60,13 @@ class DashboardFragment : Fragment() {
     
     // Temperature alert tracking (will be loaded from settings)
     private var lastAlertTime = 0L
-    private var alertCooldown = 60 * 1000L // Default 1 minute
+    private var alertCooldown = 30 * 1000L // Default 30 seconds
     private var criticalThreshold = 10 // Default 10°C above target
     private var vibrationEnabled = true
+    private var notificationsEnabled = true
     private var lastAlertType: String? = null
     private val NOTIFICATION_ID_TEMP = 1001
+    private val TAG = "DashboardFragment"
     
     // Permission request launcher
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -104,21 +107,40 @@ class DashboardFragment : Fragment() {
     /**
      * Load settings from SharedPreferences
      */
-    companion object {
-        const val PREFS_NAME = "dashboard_prefs"
-        const val KEY_CRITICAL_THRESHOLD = "critical_threshold"
-        const val KEY_ALERT_COOLDOWN = "alert_cooldown"
-        const val KEY_VIBRATION_ENABLED = "vibration_enabled"
-        const val KEY_SAVE_INTERVAL = "save_interval"
+    private fun loadSettings() {
+        val prefs = requireContext().getSharedPreferences(IpoTechApplication.PREFS_NAME, Context.MODE_PRIVATE)
+        
+        criticalThreshold = getSafeInt(prefs, IpoTechApplication.KEY_CRITICAL_THRESHOLD, 10)
+        
+        // Load cooldown as Float to support 0.5 minutes (30 seconds)
+        val cooldownMin = getSafeFloat(prefs, IpoTechApplication.KEY_ALERT_COOLDOWN, 0.5f)
+        alertCooldown = (cooldownMin * 60 * 1000).toLong()
+        
+        vibrationEnabled = prefs.getBoolean(IpoTechApplication.KEY_VIBRATION, true)
+        notificationsEnabled = prefs.getBoolean(IpoTechApplication.KEY_NOTIFICATIONS, true)
+        
+        val saveIntMin = getSafeFloat(prefs, IpoTechApplication.KEY_SAVE_INTERVAL, 5f)
+        tempSaveInterval = (saveIntMin * 60 * 1000).toLong()
+        
+        Log.d(TAG, "Settings Loaded: Threshold=$criticalThreshold, CooldownMs=$alertCooldown, Notifications=$notificationsEnabled")
     }
 
-    private fun loadSettings() {
-        val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        
-        criticalThreshold = prefs.getInt(KEY_CRITICAL_THRESHOLD, 10)
-        alertCooldown = prefs.getInt(KEY_ALERT_COOLDOWN, 1) * 60 * 1000L
-        vibrationEnabled = prefs.getBoolean(KEY_VIBRATION_ENABLED, true)
-        tempSaveInterval = prefs.getInt(KEY_SAVE_INTERVAL, 5) * 60 * 1000L
+    private fun getSafeInt(prefs: android.content.SharedPreferences, key: String, default: Int): Int {
+        return try {
+            val value = prefs.getString(key, default.toString()) ?: default.toString()
+            value.toIntOrNull() ?: default
+        } catch (e: Exception) {
+            prefs.getInt(key, default)
+        }
+    }
+
+    private fun getSafeFloat(prefs: android.content.SharedPreferences, key: String, default: Float): Float {
+        return try {
+            val value = prefs.getString(key, default.toString()) ?: default.toString()
+            value.toFloatOrNull() ?: default
+        } catch (e: Exception) {
+            prefs.getFloat(key, default)
+        }
     }
     
     /**
@@ -139,28 +161,33 @@ class DashboardFragment : Fragment() {
     /**
      * Vibrate the device for haptic feedback
      */
-    private fun vibrate(durationMs: Long = 50, isStrong: Boolean = false) {
+    private fun vibrate(isAlert: Boolean = false) {
         if (!vibrationEnabled) return
         val ctx = context ?: return
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val vibratorManager = ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                val vibrator = vibratorManager.defaultVibrator
-                val effect = if (isStrong) {
-                    VibrationEffect.createOneShot(durationMs, VibrationEffect.EFFECT_HEAVY_CLICK)
-                } else {
-                    VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE)
-                }
-                vibrator.vibrate(effect)
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                (ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
             } else {
                 @Suppress("DEPRECATION")
-                val vibrator = ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            }
+
+            if (isAlert) {
+                // Short triple burst pattern for alerts: 200ms on, 100ms off, repeated
+                val pattern = longArrayOf(0, 200, 100, 200, 100, 200)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val effect = VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE)
-                    vibrator.vibrate(effect)
+                    vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
                 } else {
                     @Suppress("DEPRECATION")
-                    vibrator.vibrate(durationMs)
+                    vibrator.vibrate(pattern, -1)
+                }
+            } else {
+                // Short single tap for UI clicks
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(50)
                 }
             }
         } catch (e: Exception) {
@@ -223,7 +250,7 @@ class DashboardFragment : Fragment() {
     private fun setupEmergencyStop() {
         binding.btnEmergencyStop.setOnClickListener {
             // Strong vibration for emergency stop
-            vibrate(200, isStrong = true)
+            vibrate(isAlert = true)
             
             val stopUpdates = HashMap<String, Any>()
             stopUpdates["conveyor/status"] = false
@@ -354,6 +381,8 @@ class DashboardFragment : Fragment() {
                     else -> temp?.toString()?.toDoubleOrNull() ?: 0.0
                 }
                 
+                Log.d(TAG, "Temp Updated: $tempValue°C")
+
                 // Update text (hidden, for compatibility)
                 binding.tvTemperature.text = String.format("%.1f°C", tempValue)
                 
@@ -369,7 +398,9 @@ class DashboardFragment : Fragment() {
                 // Check for temperature alerts
                 checkTemperatureAlert(tempValue)
             }
-            override fun onCancelled(error: DatabaseError) {}
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Firebase Temp Read Failed", error.toException())
+            }
         })
 
         // Heater Status Observer
@@ -569,31 +600,35 @@ class DashboardFragment : Fragment() {
      * Check if temperature exceeds thresholds and show alert
      */
     private fun checkTemperatureAlert(temp: Double) {
+        if (!notificationsEnabled) return
+
         val currentTime = System.currentTimeMillis()
-        
-        // Don't alert for invalid readings
         if (temp <= 0 || temp > 500) return
         
-        // Determine alert type
         val alertType = when {
-            temp > targetHigh + criticalThreshold -> "critical_high"  // Above target by threshold
+            temp > targetHigh + criticalThreshold -> "critical_high"
             temp > targetHigh -> "high"
-            temp < targetLow - 20 && temp > 0 -> "low"  // 20°C below target (warming up)
+            temp < targetLow - 20 && temp > 0 -> "low"
             else -> null
         }
         
-        // No alert needed or same alert within cooldown
         if (alertType == null) {
+            if (lastAlertType != null) Log.d(TAG, "Temperature is normal. Alert state reset.")
             lastAlertType = null
             return
         }
         
-        // Check cooldown (unless it's a different/worse alert type)
         val shouldAlert = when {
             lastAlertType == null -> true
-            alertType == "critical_high" && lastAlertType != "critical_high" -> true
-            alertType != lastAlertType -> currentTime - lastAlertTime > alertCooldown
-            else -> currentTime - lastAlertTime > alertCooldown * 5 // Longer cooldown for same alert
+            alertType == "critical_high" && lastAlertType != "critical_high" -> {
+                Log.d(TAG, "Critical Alert Priority! Bypassing cooldown.")
+                true
+            }
+            else -> {
+                val elapsed = currentTime - lastAlertTime
+                Log.d(TAG, "Current alert type: $alertType. Elapsed: ${elapsed/1000}s, Required: ${alertCooldown/1000}s")
+                elapsed > alertCooldown
+            }
         }
         
         if (shouldAlert) {
@@ -609,44 +644,19 @@ class DashboardFragment : Fragment() {
     private fun showTemperatureAlert(temp: Double, alertType: String) {
         val ctx = context ?: return
         
-        // Check permission for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(
-                    ctx,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                return
-            }
+            if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
         }
         
         val (title, message, priority) = when (alertType) {
-            "critical_high" -> Triple(
-                "⚠️ CRITICAL: Temperature Too High!",
-                "Temperature is ${String.format("%.1f", temp)}°C - Exceeds safe limit by ${String.format("%.1f", temp - targetHigh)}°C",
-                NotificationCompat.PRIORITY_MAX
-            )
-            "high" -> Triple(
-                "Temperature Warning",
-                "Temperature is ${String.format("%.1f", temp)}°C - Above target range (${targetHigh.toInt()}°C)",
-                NotificationCompat.PRIORITY_HIGH
-            )
-            "low" -> Triple(
-                "Temperature Low",
-                "Temperature is ${String.format("%.1f", temp)}°C - Below target range (${targetLow.toInt()}°C)",
-                NotificationCompat.PRIORITY_DEFAULT
-            )
+            "critical_high" -> Triple("⚠️ CRITICAL", "Temp: ${String.format("%.1f", temp)}°C - Over safe limit!", NotificationCompat.PRIORITY_MAX)
+            "high" -> Triple("Temp Warning", "Temp: ${String.format("%.1f", temp)}°C - Above range.", NotificationCompat.PRIORITY_HIGH)
+            "low" -> Triple("Temp Low", "Temp: ${String.format("%.1f", temp)}°C - Below range.", NotificationCompat.PRIORITY_DEFAULT)
             else -> return
         }
         
-        // Create intent to open app when notification is tapped
-        val intent = Intent(ctx, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            ctx, 0, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val intent = Intent(ctx, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK }
+        val pendingIntent = PendingIntent.getActivity(ctx, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         
         val notification = NotificationCompat.Builder(ctx, IpoTechApplication.CHANNEL_TEMP_ALERTS)
             .setSmallIcon(R.drawable.ic_dashboard)
@@ -655,30 +665,31 @@ class DashboardFragment : Fragment() {
             .setPriority(priority)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .setVibrate(longArrayOf(0, 500, 200, 500))
+            .setVibrate(longArrayOf(0, 200, 100, 200, 100, 200))
             .build()
         
         val notificationManager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(NOTIFICATION_ID_TEMP, notification)
         
-        // Also vibrate
-        vibrate()
+        // Vibrate with short triple burst pattern
+        vibrate(isAlert = true)
+
+        Log.d(TAG, "NOTIFICATION SENT: $title")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadSettings()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Clear animations to prevent memory leaks
         _binding?.controlHeater?.statusIndicator?.clearAnimation()
         _binding?.controlConveyor?.statusIndicator?.clearAnimation()
         _binding?.controlPulverizer?.statusIndicator?.clearAnimation()
-        
-        // Remove connection listener
         connectionListener?.let {
-            FirebaseDatabase.getInstance("https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/")
-                .getReference(".info/connected")
-                .removeEventListener(it)
+            FirebaseDatabase.getInstance("https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/").getReference(".info/connected").removeEventListener(it)
         }
-        
         _binding = null
         conveyorTimer?.cancel()
         heaterTimer?.cancel()

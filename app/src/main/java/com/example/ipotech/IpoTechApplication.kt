@@ -18,6 +18,11 @@ class IpoTechApplication : Application() {
         private const val DB_URL = "https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/"
         const val PREFS_NAME = "ipotech_settings"
         const val KEY_DARK_MODE = "dark_mode"
+        const val KEY_NOTIFICATIONS = "notifications"
+        const val KEY_VIBRATION = "vibration"
+        const val KEY_CRITICAL_THRESHOLD = "critical_threshold"
+        const val KEY_ALERT_COOLDOWN = "alert_cooldown"
+        const val KEY_SAVE_INTERVAL = "save_interval"
         const val KEY_AUTO_CLEANUP = "auto_cleanup"
     }
     
@@ -101,7 +106,8 @@ class IpoTechApplication : Application() {
             ).apply {
                 description = "Alerts when temperature exceeds safe thresholds"
                 enableVibration(true)
-                vibrationPattern = longArrayOf(0, 500, 200, 500)
+                // Short triple burst pattern for easy noticing (Industrial Alert Style)
+                vibrationPattern = longArrayOf(0, 200, 100, 200, 100, 200)
             }
             
             val notificationManager = getSystemService(NotificationManager::class.java)
