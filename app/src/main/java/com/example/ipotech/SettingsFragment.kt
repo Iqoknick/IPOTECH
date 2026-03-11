@@ -16,6 +16,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.messaging.FirebaseMessaging
 
 class SettingsFragment : Fragment() {
 
@@ -124,6 +125,23 @@ class SettingsFragment : Fragment() {
         // Reset to defaults button
         binding.btnResetDefaults.setOnClickListener {
             resetToDefaults()
+        }
+
+        // Notification toggle
+        binding.switchNotifications.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("notifications_enabled", isChecked).apply()
+            if (!isChecked) {
+                // Disable FCM push notifications
+                FirebaseMessaging.getInstance().deleteToken()
+                Toast.makeText(requireContext(), "Push notifications disabled", Toast.LENGTH_SHORT).show()
+            } else {
+                // Re-enable FCM push notifications
+                FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Toast.makeText(requireContext(), "Push notifications enabled", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         }
     }
 

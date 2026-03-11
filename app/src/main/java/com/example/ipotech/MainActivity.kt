@@ -4,6 +4,7 @@ import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.content.Intent
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -79,6 +80,14 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+
+        // Start Foreground Service for monitoring
+        val monitorIntent = Intent(this, MonitoringForegroundService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(monitorIntent)
+        } else {
+            startService(monitorIntent)
+        }
 
         // Test Mode: Start background worker immediately without Auth
         startScheduleWorker()
