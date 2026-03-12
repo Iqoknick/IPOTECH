@@ -23,18 +23,22 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         
         Log.d(TAG, "Received alarm action: $action for $label")
         
+        // Use goAsync to keep receiver alive for background Firebase operations
+        val pendingResult = goAsync()
+        
         when (action) {
             AlarmScheduler.ACTION_START_CONVEYOR -> {
                 val durationMinutes = intent.getIntExtra(AlarmScheduler.EXTRA_DURATION_MINUTES, 0)
-                handleStartConveyor(context, label, durationMinutes)
+                handleStartConveyor(context, label, durationMinutes, pendingResult)
             }
             AlarmScheduler.ACTION_STOP_CONVEYOR -> {
-                handleStopConveyor(context, label)
+                handleStopConveyor(context, label, pendingResult)
             }
+            else -> pendingResult.finish()
         }
     }
     
-    private fun handleStartConveyor(context: Context, label: String, durationMinutes: Int) {
+    private fun handleStartConveyor(context: Context, label: String, durationMinutes: Int, pendingResult: android.content.BroadcastReceiver.PendingResult? = null) {
         val database = FirebaseDatabase.getInstance(DB_URL).reference
         
         // Check if schedule is still enabled and not manually overridden
@@ -43,6 +47,7 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
             
             if (!masterEnabled) {
                 Log.d(TAG, "Master schedule disabled, skipping start")
+                pendingResult?.finish()
                 return@addOnSuccessListener
             }
             
@@ -52,6 +57,7 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
                 
                 if (isOverride) {
                     Log.d(TAG, "Manual override active, skipping scheduled start")
+                    pendingResult?.finish()
                     return@addOnSuccessListener
                 }
                 
@@ -64,15 +70,23 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
                         Log.d(TAG, "Not an active day, skipping start")
                         // Reschedule for tomorrow
                         rescheduleForTomorrow(context, label)
+                        pendingResult?.finish()
                         return@addOnSuccessListener
                     }
                     
                     // Check date range
-                    checkDateRangeAndStart(context, database, label, durationMinutes)
+                    checkDateRangeAndStart(context, database, label, durationMinutes, pendingResult)
+                }.addOnFailureListener {
+                    Log.e(TAG, "Failed to check active days: ${it.message}")
+                    pendingResult?.finish()
                 }
+            }.addOnFailureListener {
+                Log.e(TAG, "Failed to check manual override: ${it.message}")
+                pendingResult?.finish()
             }
         }.addOnFailureListener {
             Log.e(TAG, "Failed to check master enabled: ${it.message}")
+            pendingResult?.finish()
         }
     }
     
@@ -80,7 +94,8 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         context: Context,
         database: com.google.firebase.database.DatabaseReference,
         label: String,
-        durationMinutes: Int
+        durationMinutes: Int,
+        pendingResult: android.content.BroadcastReceiver.PendingResult? = null
     ) {
         database.child("schedule").get().addOnSuccessListener { snapshot ->
             val startDate = snapshot.child("startDate").getValue(String::class.java) ?: ""
@@ -92,18 +107,21 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
             // Check if within date range
             if (startDate.isNotEmpty() && startDate != "---" && currentDate < startDate) {
                 Log.d(TAG, "Before start date, skipping")
+                pendingResult?.finish()
                 return@addOnSuccessListener
             }
             if (endDate.isNotEmpty() && endDate != "---" && currentDate > endDate) {
                 Log.d(TAG, "After end date, skipping")
+                pendingResult?.finish()
                 return@addOnSuccessListener
             }
             
             // All checks passed - start the conveyor!
-            startConveyor(context, database, label, durationMinutes)
+            startConveyor(context, database, label, durationMinutes, pendingResult)
             
         }.addOnFailureListener {
             Log.e(TAG, "Failed to check date range: ${it.message}")
+            pendingResult?.finish()
         }
     }
     
@@ -111,7 +129,8 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         context: Context,
         database: com.google.firebase.database.DatabaseReference,
         label: String,
-        durationMinutes: Int
+        durationMinutes: Int,
+        pendingResult: android.content.BroadcastReceiver.PendingResult? = null
     ) {
         // Calculate stop time
         val stopTimeMillis = System.currentTimeMillis() + (durationMinutes * 60 * 1000L)
@@ -123,7 +142,10 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         
         // Log the activity
         val log = LogEntry(System.currentTimeMillis(), "Conveyor", "$label Schedule Started (Exact Alarm)")
-        database.child("logs").push().setValue(log)
+        database.child("logs").push().setValue(log).addOnCompleteListener {
+            // Finish pending result after log is written
+            pendingResult?.finish()
+        }
         
         // Schedule the stop alarm
         val stopRequestCode = if (label.contains("Morning", ignoreCase = true)) {
@@ -140,7 +162,7 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         rescheduleForTomorrow(context, label)
     }
     
-    private fun handleStopConveyor(context: Context, label: String) {
+    private fun handleStopConveyor(context: Context, label: String, pendingResult: android.content.BroadcastReceiver.PendingResult) {
         val database = FirebaseDatabase.getInstance(DB_URL).reference
         
         // Stop the conveyor and reset manual_override to allow future scheduled operations
@@ -148,9 +170,12 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         database.child("conveyor/stop_at").setValue(0L)
         database.child("conveyor/manual_override").setValue(false)
         
-        // Log the activity
+        // Log the activity and wait for it to complete before finishing
         val log = LogEntry(System.currentTimeMillis(), "Conveyor", "$label Schedule Finished (Exact Alarm)")
-        database.child("logs").push().setValue(log)
+        database.child("logs").push().setValue(log).addOnCompleteListener {
+            Log.d(TAG, "Log written for $label stop, finishing broadcast")
+            pendingResult.finish()
+        }
         
         Log.d(TAG, "Stopped conveyor for $label")
     }
