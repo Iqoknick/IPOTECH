@@ -285,34 +285,40 @@ class DashboardFragment : Fragment() {
 
     private fun setupControls() {
         binding.controlHeater.tvDeviceName.text = getString(R.string.heater)
-        val heaterToggle = View.OnClickListener {
-            vibrate() // Haptic feedback
-            val newState = !isHeaterOn
-            updateDeviceStatus("heater", newState)
-            logActivity("Heater", if (newState) "Manual ON" else "Manual OFF")
+        binding.controlHeater.btnOn.setOnClickListener {
+            vibrate()
+            updateDeviceStatus("heater", true)
+            logActivity("Heater", "Manual ON")
         }
-        binding.controlHeater.btnOn.setOnClickListener(heaterToggle)
-        binding.controlHeater.btnOff.setOnClickListener(heaterToggle)
+        binding.controlHeater.btnOff.setOnClickListener {
+            vibrate()
+            updateDeviceStatus("heater", false)
+            logActivity("Heater", "Manual OFF")
+        }
 
         binding.controlConveyor.tvDeviceName.text = getString(R.string.conveyor)
-        val conveyorToggle = View.OnClickListener {
-            vibrate() // Haptic feedback
-            val newState = !isConveyorOn
-            updateDeviceStatus("conveyor", newState)
-            logActivity("Conveyor", if (newState) "Manual ON" else "Manual OFF")
+        binding.controlConveyor.btnOn.setOnClickListener {
+            vibrate()
+            updateDeviceStatus("conveyor", true)
+            logActivity("Conveyor", "Manual ON")
         }
-        binding.controlConveyor.btnOn.setOnClickListener(conveyorToggle)
-        binding.controlConveyor.btnOff.setOnClickListener(conveyorToggle)
+        binding.controlConveyor.btnOff.setOnClickListener {
+            vibrate()
+            updateDeviceStatus("conveyor", false)
+            logActivity("Conveyor", "Manual OFF")
+        }
 
         binding.controlPulverizer.tvDeviceName.text = getString(R.string.pulverizer)
-        val pulverizerToggle = View.OnClickListener {
-            vibrate() // Haptic feedback
-            val newState = !isPulverizerOn
-            updateDeviceStatus("pulverizer", newState)
-            logActivity("Pulverizer", if (newState) "Manual ON" else "Manual OFF")
+        binding.controlPulverizer.btnOn.setOnClickListener {
+            vibrate()
+            updateDeviceStatus("pulverizer", true)
+            logActivity("Pulverizer", "Manual ON")
         }
-        binding.controlPulverizer.btnOn.setOnClickListener(pulverizerToggle)
-        binding.controlPulverizer.btnOff.setOnClickListener(pulverizerToggle)
+        binding.controlPulverizer.btnOff.setOnClickListener {
+            vibrate()
+            updateDeviceStatus("pulverizer", false)
+            logActivity("Pulverizer", "Manual OFF")
+        }
         
         binding.switchManualOverride.setOnCheckedChangeListener { _, isChecked ->
             vibrate() // Haptic feedback

@@ -9,6 +9,8 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
@@ -22,6 +24,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var navController: NavController
+
+    // Order of fragments for directional transitions
+    private val navItemOrder = listOf(
+        R.id.nav_dashboard,
+        R.id.nav_scheduler,
+        R.id.nav_trends,
+        R.id.nav_settings
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,7 +51,45 @@ class MainActivity : AppCompatActivity() {
             binding.drawerLayout
         )
         
+        // We handle navigation manually to provide custom animations
         binding.navView.setupWithNavController(navController)
+        binding.navView.setNavigationItemSelectedListener { menuItem ->
+            val targetId = menuItem.itemId
+            val currentId = navController.currentDestination?.id ?: -1
+            
+            if (targetId != currentId) {
+                val startDestId = navController.graph.findStartDestination().id
+                
+                // Determine animation direction based on menu order
+                val currentIndex = navItemOrder.indexOf(currentId)
+                val targetIndex = navItemOrder.indexOf(targetId)
+                
+                val builder = NavOptions.Builder()
+                    .setLaunchSingleTop(true)
+                    .setRestoreState(true)
+                
+                if (targetIndex < currentIndex) {
+                    // Moving "backward" (e.g., from Settings to Dashboard) -> Slide Left
+                    builder.setEnterAnim(R.anim.slide_in_left)
+                        .setExitAnim(R.anim.slide_out_right)
+                        .setPopEnterAnim(R.anim.slide_in_left)
+                        .setPopExitAnim(R.anim.slide_out_right)
+                } else {
+                    // Moving "forward" (e.g., from Dashboard to Scheduler) -> Slide Right
+                    builder.setEnterAnim(R.anim.slide_in_right)
+                        .setExitAnim(R.anim.slide_out_left)
+                        .setPopEnterAnim(R.anim.slide_in_left)
+                        .setPopExitAnim(R.anim.slide_out_right)
+                }
+
+                // Properly manage the backstack to avoid duplicate targets
+                builder.setPopUpTo(startDestId, inclusive = false, saveState = true)
+                
+                navController.navigate(targetId, null, builder.build())
+            }
+            binding.drawerLayout.closeDrawer(GravityCompat.START)
+            true
+        }
 
         binding.toolbar.findViewById<android.view.View>(R.id.btn_menu_custom).setOnClickListener {
             binding.drawerLayout.openDrawer(GravityCompat.START)
@@ -49,14 +97,6 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<android.view.View>(R.id.btn_exit_nav).setOnClickListener {
             showExitConfirmDialog()
-        }
-
-        binding.navView.setNavigationItemSelectedListener { menuItem ->
-            val handled = androidx.navigation.ui.NavigationUI.onNavDestinationSelected(menuItem, navController)
-            if (handled) {
-                binding.drawerLayout.closeDrawer(GravityCompat.START)
-            }
-            handled
         }
         
         // Handle back gesture navigation properly
@@ -67,9 +107,9 @@ class MainActivity : AppCompatActivity() {
                     binding.drawerLayout.isDrawerOpen(GravityCompat.START) -> {
                         binding.drawerLayout.closeDrawer(GravityCompat.START)
                     }
-                    // Not on dashboard - open drawer menu
+                    // Not on dashboard - navigate back to dashboard (start destination)
                     navController.currentDestination?.id != R.id.nav_dashboard -> {
-                        binding.drawerLayout.openDrawer(GravityCompat.START)
+                        navController.popBackStack(R.id.nav_dashboard, false)
                     }
                     // On dashboard, show exit confirmation
                     else -> {
