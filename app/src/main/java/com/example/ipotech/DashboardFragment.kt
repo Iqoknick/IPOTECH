@@ -52,6 +52,12 @@ class DashboardFragment : Fragment() {
     private var isConveyorOn = false
     private var isPulverizerOn = false
     
+    // Flag to prevent overwriting user input during editing
+    private var isEditingHysteresis = false
+    
+    // Flag to distinguish user vs Firebase manual override changes
+    private var isUserManualOverrideChange = false
+    
     // Default Settings (Matches your ESP32 code: 120-130°C)
     private var targetLow = 120.0
     private var targetHigh = 130.0
@@ -274,6 +280,7 @@ class DashboardFragment : Fragment() {
         // Clear focus and hide keyboard when clicking on the background
         binding.dashboardScrollView.setOnTouchListener { v, _ ->
             hideKeyboardAndClearFocus()
+            isEditingHysteresis = false // Reset editing flag
             false // return false so scroll still works
         }
     }
@@ -287,6 +294,9 @@ class DashboardFragment : Fragment() {
 
     private fun setupEmergencyStop() {
         binding.btnEmergencyStop.setOnClickListener {
+            // Log immediately before Firebase operation
+            logActivity("SYSTEM", "EMERGENCY STOP ACTIVATED")
+            
             // Strong vibration for emergency stop
             vibrate(isAlert = true)
             
@@ -309,7 +319,6 @@ class DashboardFragment : Fragment() {
                 if (success) {
                     if (context != null) {
                         Toast.makeText(requireContext(), "EMERGENCY STOP ACTIVATED", Toast.LENGTH_LONG).show()
-                        logActivity("SYSTEM", "EMERGENCY STOP ACTIVATED")
                         SystemLogger.logInfo(LogCategory.DEVICE_CONTROL, "Emergency stop successful", mapOf(
                             "devices_stopped" to listOf("conveyor", "pulverizer", "heater")
                         ))
@@ -387,6 +396,11 @@ class DashboardFragment : Fragment() {
         
         binding.switchManualOverride.setOnCheckedChangeListener { _, isChecked ->
             vibrate() // Haptic feedback
+            
+            // Log immediately - don't worry about distinguishing user vs Firebase for now
+            logActivity("Manual Override", if (isChecked) "ENABLED" else "DISABLED")
+            Log.d(TAG, "Manual override logged: ${if (isChecked) "ENABLED" else "DISABLED"}")
+            
             ErrorRecoveryManager.safeWrite(database, "conveyor/manual_override", isChecked) { success ->
                 if (!success) {
                     // Show error and revert switch
@@ -403,8 +417,6 @@ class DashboardFragment : Fragment() {
                             Toast.LENGTH_SHORT
                         ).show()
                     }
-                } else {
-                    logActivity("Manual Override", if (isChecked) "ENABLED" else "DISABLED")
                 }
             }
         }
@@ -412,8 +424,17 @@ class DashboardFragment : Fragment() {
         // Update Hysteresis Button
         binding.btnUpdateHysteresis.setOnClickListener {
             vibrate() // Haptic feedback
-            val low = binding.etTempLow.text.toString().toDoubleOrNull() ?: 120.0
-            val high = binding.etTempHigh.text.toString().toDoubleOrNull() ?: 130.0
+            
+            // Get the actual values from the text fields
+            val lowStr = binding.etTempLow.text.toString().trim()
+            val highStr = binding.etTempHigh.text.toString().trim()
+            
+            // Parse with better error handling
+            val low = if (lowStr.isNotEmpty()) lowStr.toDoubleOrNull() ?: targetLow else targetLow
+            val high = if (highStr.isNotEmpty()) highStr.toDoubleOrNull() ?: targetHigh else targetHigh
+            
+            // Log immediately before Firebase operation
+            logActivity("Heater", "Settings Updated: $low - $high°C")
             
             val updates = HashMap<String, Any>()
             updates["heater/temp_low"] = low
@@ -423,8 +444,13 @@ class DashboardFragment : Fragment() {
                 if (success) {
                     if (context != null) {
                         Toast.makeText(requireContext(), "Hysteresis Updated: $low°C - $high°C", Toast.LENGTH_SHORT).show()
-                        logActivity("Heater", "Settings Updated: $low - $high°C")
                         hideKeyboardAndClearFocus()
+                        
+                        // Update local variables and UI
+                        targetLow = low
+                        targetHigh = high
+                        binding.etTempLow.setText(low.toInt().toString())
+                        binding.etTempHigh.setText(high.toInt().toString())
                         
                         // Update gauge thresholds
                         binding.temperatureGauge.setThresholds(low.toFloat(), high.toFloat())
@@ -439,6 +465,15 @@ class DashboardFragment : Fragment() {
                     }
                 }
             }
+        }
+        
+        // Add focus listeners to prevent overwriting during editing
+        binding.etTempLow.setOnFocusChangeListener { _, hasFocus ->
+            isEditingHysteresis = hasFocus
+        }
+        
+        binding.etTempHigh.setOnFocusChangeListener { _, hasFocus ->
+            isEditingHysteresis = hasFocus
         }
     }
 
@@ -486,11 +521,13 @@ class DashboardFragment : Fragment() {
                 targetHigh = DataValidator.getSafeDouble(snapshot, "temp_high", 130.0)
                 
                 // Update UI fields if they are not being edited
-                if (!binding.etTempLow.hasFocus()) {
-                    binding.etTempLow.setText(targetLow.toInt().toString())
-                }
-                if (!binding.etTempHigh.hasFocus()) {
-                    binding.etTempHigh.setText(targetHigh.toInt().toString())
+                if (!isEditingHysteresis) {
+                    if (!binding.etTempLow.hasFocus()) {
+                        binding.etTempLow.setText(targetLow.toInt().toString())
+                    }
+                    if (!binding.etTempHigh.hasFocus()) {
+                        binding.etTempHigh.setText(targetHigh.toInt().toString())
+                    }
                 }
                 
                 // Update gauge thresholds
@@ -629,8 +666,12 @@ class DashboardFragment : Fragment() {
                 
                 binding.switchManualOverride.setOnCheckedChangeListener(null)
                 binding.switchManualOverride.isChecked = isOverride
+                Log.d(TAG, "Firebase updated manual override to: $isOverride (listener removed to prevent duplicate log)")
                 binding.switchManualOverride.setOnCheckedChangeListener { _, isChecked ->
                     vibrate()
+                    // Log immediately - don't worry about distinguishing user vs Firebase for now
+                    logActivity("Manual Override", if (isChecked) "ENABLED" else "DISABLED")
+                    Log.d(TAG, "Manual override logged: ${if (isChecked) "ENABLED" else "DISABLED"}")
                     ErrorRecoveryManager.safeWrite(database, "conveyor/manual_override", isChecked) { }
                 }
                 isConveyorOn = newStatus
@@ -665,7 +706,11 @@ class DashboardFragment : Fragment() {
                 
                 // Validate pulverizer data
                 if (!DataValidator.validatePulverizerData(snapshot)) {
-                    Log.e(TAG, "Invalid pulverizer data received, ignoring")
+                    Log.e(TAG, "Invalid pulverizer data received, using fallback")
+                    // Fallback: try to get status directly
+                    val status = snapshot.child("status").getValue(Boolean::class.java) ?: false
+                    isPulverizerOn = status
+                    updateControlUI(binding.controlPulverizer, isPulverizerOn)
                     return
                 }
                 
@@ -674,7 +719,7 @@ class DashboardFragment : Fragment() {
             }
             override fun onCancelled(error: DatabaseError) {}
         }
-        database.child("pulverizer/status").addValueEventListener(pulverizerListener!!)
+        database.child("pulverizer").addValueEventListener(pulverizerListener!!)
 
         logsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -686,7 +731,17 @@ class DashboardFragment : Fragment() {
                         val log = logSnapshot.getValue(LogEntry::class.java)
                         if (log != null) logList.add(0, log)
                     } else {
-                        Log.w(TAG, "Skipping invalid log entry")
+                        // Try to add log anyway with fallback validation
+                        try {
+                            val timestamp = logSnapshot.child("timestamp").getValue(Long::class.java) ?: System.currentTimeMillis()
+                            val action = logSnapshot.child("action").getValue(String::class.java) ?: "Unknown"
+                            val details = logSnapshot.child("details").getValue(String::class.java) ?: "No details"
+                            val fallbackLog = LogEntry(timestamp, action, details)
+                            logList.add(0, fallbackLog)
+                            Log.d(TAG, "Added log with fallback validation")
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Skipping invalid log entry: ${e.message}")
+                        }
                     }
                 }
                 logAdapter.notifyDataSetChanged()
@@ -776,11 +831,13 @@ class DashboardFragment : Fragment() {
 
     private fun logActivity(action: String, details: String) {
         val log = LogEntry(System.currentTimeMillis(), action, details)
-        ErrorRecoveryManager.safeWrite(database, "logs", log) { success ->
-            if (!success) {
-                Log.w(TAG, "Failed to log activity: $action - $details")
+        database.child("logs").push().setValue(log)
+            .addOnSuccessListener {
+                Log.d(TAG, "Activity logged: $action - $details")
             }
-        }
+            .addOnFailureListener { error ->
+                Log.w(TAG, "Failed to log activity: $action - $details: ${error.message}")
+            }
     }
     
     /**

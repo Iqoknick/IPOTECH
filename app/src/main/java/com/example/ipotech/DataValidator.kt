@@ -104,18 +104,20 @@ object DataValidator {
      * Validate pulverizer status data
      */
     fun validatePulverizerData(snapshot: DataSnapshot): Boolean {
-        try {
-            val status = snapshot.getValue(Boolean::class.java)
+        return try {
+            // Check if snapshot has direct boolean value or child status
+            val directStatus = snapshot.getValue(Boolean::class.java)
+            val childStatus = snapshot.child("status").getValue(Boolean::class.java)
             
-            if (status == null) {
-                Log.e(TAG, "Invalid pulverizer data: status is null")
-                return false
+            if (directStatus != null || childStatus != null) {
+                return true
             }
             
-            return true
+            Log.e(TAG, "Invalid pulverizer data: no status found")
+            false
         } catch (e: Exception) {
             Log.e(TAG, "Exception validating pulverizer data: ${e.message}")
-            return false
+            false
         }
     }
     
@@ -258,15 +260,15 @@ object DataValidator {
             
             // Validate timestamp is reasonable (not too far in future, not too old)
             val now = System.currentTimeMillis()
-            if (timestamp > now + 60 * 60 * 1000L || timestamp < now - 30 * 24 * 60 * 60 * 1000L) {
-                Log.e(TAG, "Invalid log entry: timestamp out of range: $timestamp")
-                return false
+            if (timestamp > now + 24 * 60 * 60 * 1000L || timestamp < now - 90 * 24 * 60 * 60 * 1000L) {
+                Log.w(TAG, "Log entry timestamp out of range but accepting: $timestamp")
+                // Don't reject for timestamp issues, just warn
             }
             
-            // Validate action and details length
-            if (action.length > 100 || details.length > 500) {
-                Log.e(TAG, "Invalid log entry: action/details too long")
-                return false
+            // Validate action and details length (be more lenient)
+            if (action.length > 200 || details.length > 1000) {
+                Log.w(TAG, "Log entry action/details long but accepting: action=${action.length}, details=${details.length}")
+                // Don't reject for length issues, just warn
             }
             
             true
