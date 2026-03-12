@@ -18,6 +18,12 @@ import com.example.ipotech.IpoTechApplication.Companion.KEY_VIBRATION
 import com.example.ipotech.IpoTechApplication.Companion.PREFS_NAME
 import com.example.ipotech.databinding.FragmentSettingsBinding
 
+// Import system components for cleanup
+import com.example.ipotech.OfflineManager
+import com.example.ipotech.SystemLogger
+import com.example.ipotech.ErrorRecoveryManager
+import android.util.Log
+
 class SettingsFragment : Fragment() {
 
     private var _binding: FragmentSettingsBinding? = null
@@ -66,9 +72,36 @@ class SettingsFragment : Fragment() {
                 visibility = View.VISIBLE
                 text = "Cleaning up system logs..."
             }
-            view.postDelayed({
-                binding.tvCleanupStatus.text = "Cleanup complete."
-            }, 1500)
+            
+            // Perform actual cleanup
+            Thread {
+                try {
+                    // Clear offline caches
+                    OfflineManager.clearCaches()
+                    
+                    // Clear system logs queue
+                    SystemLogger.clearLogs()
+                    
+                    // Cancel pending error recovery operations
+                    ErrorRecoveryManager.cancelAllOperations()
+                    
+                    // Force garbage collection hint
+                    System.gc()
+                    
+                    // Update UI on main thread
+                    view.post {
+                        binding.tvCleanupStatus.text = "Cleanup complete. Caches cleared, logs purged."
+                        view.postDelayed({
+                            binding.tvCleanupStatus.visibility = View.GONE
+                        }, 3000)
+                    }
+                    
+                } catch (e: Exception) {
+                    view.post {
+                        binding.tvCleanupStatus.text = "Cleanup failed: ${e.message}"
+                    }
+                }
+            }.start()
         }
     }
 
@@ -121,6 +154,10 @@ class SettingsFragment : Fragment() {
             putString(KEY_SAVE_INTERVAL, binding.etSaveInterval.text.toString())
             apply()
         }
+        
+        // Notify DashboardFragment to reload settings
+        // This will be handled by the onResume callback in DashboardFragment
+        Log.d("SettingsFragment", "Settings saved - DashboardFragment will reload on resume")
     }
 
     private fun saveBooleanSetting(key: String, value: Boolean) {
