@@ -9,11 +9,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.ExistingPeriodicWorkPolicy
-import java.util.concurrent.TimeUnit
-import com.example.ipotech.ScheduleWorker
 import com.example.ipotech.R
 
 class MonitoringForegroundService : Service() {
@@ -30,13 +25,7 @@ class MonitoringForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = buildNotification()
         startForeground(NOTIFICATION_ID, notification)
-        // Start schedule worker for continuous monitoring
-        val workRequest = PeriodicWorkRequestBuilder<ScheduleWorker>(15, TimeUnit.MINUTES).build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "ConveyorScheduleWork",
-            ExistingPeriodicWorkPolicy.KEEP,
-            workRequest
-        )
+        // Note: Schedule monitoring handled by Exact Alarms, not WorkManager
         return START_STICKY
     }
 

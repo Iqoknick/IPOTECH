@@ -170,8 +170,7 @@ class SchedulerFragment : Fragment() {
                     )
                 }
                 
-                val oneTimeWork = OneTimeWorkRequestBuilder<ScheduleWorker>().build()
-                WorkManager.getInstance(requireContext()).enqueue(oneTimeWork)
+                // Note: WorkManager fallback removed - using Exact Alarms only
             } else if (!isChecked && context != null) {
                 // Cancel all alarms when master is disabled
                 AlarmScheduler.cancelAllAlarms(requireContext())
@@ -511,9 +510,7 @@ class SchedulerFragment : Fragment() {
                     activeDays = days
                 )
                 
-                // Keep WorkManager as fallback
-                val oneTimeWork = OneTimeWorkRequestBuilder<ScheduleWorker>().build()
-                WorkManager.getInstance(requireContext()).enqueue(oneTimeWork)
+                // Note: WorkManager fallback removed - using Exact Alarms only
             }
         }
     }
