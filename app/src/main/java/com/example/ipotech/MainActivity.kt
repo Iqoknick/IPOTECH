@@ -20,6 +20,12 @@ import androidx.navigation.ui.setupWithNavController
 import com.example.ipotech.databinding.ActivityMainBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
+// SystemLogger import
+import com.example.ipotech.SystemLogger
+import com.example.ipotech.SystemLogger.LogCategory
+import com.example.ipotech.MonitoringUtils
+import com.example.ipotech.ErrorRecoveryManager
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
@@ -40,10 +46,23 @@ class MainActivity : AppCompatActivity() {
         // Initialize secure configuration first
         ConfigManager.initialize(this)
         
+        // Initialize system logging
+        SystemLogger.initialize(this)
+        
         // Validate configuration
         if (!ConfigManager.validateConfiguration()) {
             Log.e("MainActivity", "Invalid configuration detected")
+            SystemLogger.logCritical(LogCategory.CONFIGURATION, "Invalid configuration detected on app start")
         }
+        
+        // Log app startup
+        SystemLogger.logInfo(LogCategory.SYSTEM, "Application started", mapOf(
+            "environment" to ConfigManager.getEnvironment(),
+            "config_valid" to ConfigManager.validateConfiguration()
+        ))
+        
+        // Start system monitoring
+        MonitoringUtils.startMonitoring(this)
         
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -164,5 +183,22 @@ class MainActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         val navController = findNavController(R.id.nav_host_fragment)
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        
+        // Stop system monitoring
+        MonitoringUtils.stopMonitoring()
+        
+        // Cancel any pending error recovery operations
+        ErrorRecoveryManager.cancelAllOperations()
+        
+        // Force final log upload
+        SystemLogger.uploadLogs()
+        
+        SystemLogger.logInfo(LogCategory.SYSTEM, "Application shutdown", mapOf(
+            "final_log_upload" to "triggered"
+        ))
     }
 }

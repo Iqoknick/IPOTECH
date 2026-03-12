@@ -8,6 +8,10 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import java.util.concurrent.ConcurrentHashMap
 
+// SystemLogger import
+import com.example.ipotech.SystemLogger
+import com.example.ipotech.SystemLogger.LogCategory
+
 /**
  * Handles automatic retry for failed Firebase operations with exponential backoff
  */
@@ -42,6 +46,13 @@ object ErrorRecoveryManager {
         )
         
         pendingOperations[operationKey] = retryOp
+        
+        // Log operation start
+        SystemLogger.logDebug(LogCategory.ERROR_RECOVERY, "Starting Firebase operation", mapOf(
+            "path" to path,
+            "operation_key" to operationKey
+        ))
+        
         executeWrite(database, path, value, onComplete)
     }
     
@@ -58,10 +69,17 @@ object ErrorRecoveryManager {
             }
         }.addOnSuccessListener {
             Log.d(TAG, "Successfully wrote to $path")
+            SystemLogger.logDatabase("write", path, true, mapOf(
+                "operation_type" to if (value is Map<*, *>) "updateChildren" else "setValue"
+            ))
             removePendingOperation(path)
             onComplete?.invoke(true)
         }.addOnFailureListener { error ->
             Log.e(TAG, "Failed to write to $path: ${error.message ?: "Unknown error"}")
+            SystemLogger.logDatabase("write", path, false, mapOf(
+                "operation_type" to if (value is Map<*, *>) "updateChildren" else "setValue",
+                "error_message" to (error.message ?: "Unknown error")
+            ))
             handleFailure(database, path, value, error, onComplete)
         }
     }
@@ -71,6 +89,15 @@ object ErrorRecoveryManager {
         
         if (operation == null || operation.retryCount >= MAX_RETRIES) {
             Log.e(TAG, "Max retries exceeded for $path or operation not found")
+            
+            // Log final failure
+            SystemLogger.logError(LogCategory.ERROR_RECOVERY, "Firebase operation failed permanently", mapOf(
+                "path" to path,
+                "retry_count" to (operation?.retryCount ?: 0),
+                "max_retries" to MAX_RETRIES,
+                "error_message" to (error.message ?: "Unknown error")
+            ), error)
+            
             removePendingOperation(path)
             onComplete?.invoke(false)
             logSystemError("Firebase write failed permanently", path, error.message ?: "Unknown error")
@@ -83,6 +110,13 @@ object ErrorRecoveryManager {
         operation.nextRetryTime = System.currentTimeMillis() + delay
         
         Log.w(TAG, "Scheduling retry #$operation.retryCount for $path in ${delay}ms")
+        
+        // Log retry attempt
+        SystemLogger.logErrorRecovery("firebase_write", operation.retryCount, MAX_RETRIES, false, mapOf(
+            "path" to path,
+            "delay_ms" to delay,
+            "error_message" to (error.message ?: "Unknown error")
+        ))
         
         handler.postDelayed({
             if (pendingOperations.contains(path)) {
@@ -124,19 +158,12 @@ object ErrorRecoveryManager {
      */
     private fun logSystemError(error: String, context: String, details: String) {
         try {
-            val errorLog = mapOf(
-                "error" to error,
+            // Use SystemLogger instead of manual Firebase logging
+            SystemLogger.logError(LogCategory.DATABASE, "Firebase operation failed", mapOf(
+                "error_type" to error,
                 "context" to context,
-                "details" to details,
-                "timestamp" to System.currentTimeMillis(),
-                "app_version" to "1.0.0" // Hardcoded version to avoid BuildConfig issues
-            )
-            
-            FirebaseDatabase.getInstance(ConfigManager.getDatabaseUrl())
-                .getReference()
-                .child("system_errors")
-                .push()
-                .setValue(errorLog)
+                "details" to details
+            ))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to log system error: ${e.message}")
         }

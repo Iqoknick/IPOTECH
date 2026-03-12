@@ -30,6 +30,10 @@ import com.example.ipotech.databinding.ItemDeviceControlBinding
 import com.google.firebase.database.*
 import java.util.*
 
+// SystemLogger import
+import com.example.ipotech.SystemLogger
+import com.example.ipotech.SystemLogger.LogCategory
+
 class DashboardFragment : Fragment() {
 
     private var _binding: FragmentDashboardBinding? = null
@@ -258,6 +262,12 @@ class DashboardFragment : Fragment() {
             // Strong vibration for emergency stop
             vibrate(isAlert = true)
             
+            // Log emergency stop action
+            SystemLogger.logCritical(LogCategory.USER_ACTION, "EMERGENCY STOP ACTIVATED", mapOf(
+                "trigger" to "physical_button",
+                "timestamp" to System.currentTimeMillis()
+            ))
+            
             val stopUpdates = HashMap<String, Any>()
             stopUpdates["conveyor/status"] = false
             stopUpdates["pulverizer/status"] = false
@@ -272,6 +282,9 @@ class DashboardFragment : Fragment() {
                     if (context != null) {
                         Toast.makeText(requireContext(), "EMERGENCY STOP ACTIVATED", Toast.LENGTH_LONG).show()
                         logActivity("SYSTEM", "EMERGENCY STOP ACTIVATED")
+                        SystemLogger.logInfo(LogCategory.DEVICE_CONTROL, "Emergency stop successful", mapOf(
+                            "devices_stopped" to listOf("conveyor", "pulverizer", "heater")
+                        ))
                     }
                 } else {
                     // Emergency stop failed - show critical error
@@ -282,6 +295,11 @@ class DashboardFragment : Fragment() {
                             Toast.LENGTH_LONG
                         ).show()
                         vibrate(isAlert = true) // Additional vibration for failed stop
+                        
+                        SystemLogger.logCritical(LogCategory.DEVICE_CONTROL, "EMERGENCY STOP FAILED", mapOf(
+                            "error" to "firebase_write_failed",
+                            "fallback_required" to "physical_buttons"
+                        ))
                     }
                 }
             }
@@ -301,11 +319,13 @@ class DashboardFragment : Fragment() {
         binding.controlHeater.btnOn.setOnClickListener {
             vibrate()
             updateDeviceStatus("heater", true)
+            SystemLogger.logUserAction("Heater turned ON", mapOf("device" to "heater"))
             logActivity("Heater", "Manual ON")
         }
         binding.controlHeater.btnOff.setOnClickListener {
             vibrate()
             updateDeviceStatus("heater", false)
+            SystemLogger.logUserAction("Heater turned OFF", mapOf("device" to "heater"))
             logActivity("Heater", "Manual OFF")
         }
 
@@ -313,11 +333,13 @@ class DashboardFragment : Fragment() {
         binding.controlConveyor.btnOn.setOnClickListener {
             vibrate()
             updateDeviceStatus("conveyor", true)
+            SystemLogger.logUserAction("Conveyor turned ON", mapOf("device" to "conveyor"))
             logActivity("Conveyor", "Manual ON")
         }
         binding.controlConveyor.btnOff.setOnClickListener {
             vibrate()
             updateDeviceStatus("conveyor", false)
+            SystemLogger.logUserAction("Conveyor turned OFF", mapOf("device" to "conveyor"))
             logActivity("Conveyor", "Manual OFF")
         }
 
@@ -325,11 +347,13 @@ class DashboardFragment : Fragment() {
         binding.controlPulverizer.btnOn.setOnClickListener {
             vibrate()
             updateDeviceStatus("pulverizer", true)
+            SystemLogger.logUserAction("Pulverizer turned ON", mapOf("device" to "pulverizer"))
             logActivity("Pulverizer", "Manual ON")
         }
         binding.controlPulverizer.btnOff.setOnClickListener {
             vibrate()
             updateDeviceStatus("pulverizer", false)
+            SystemLogger.logUserAction("Pulverizer turned OFF", mapOf("device" to "pulverizer"))
             logActivity("Pulverizer", "Manual OFF")
         }
         
@@ -454,10 +478,17 @@ class DashboardFragment : Fragment() {
                 val tempValue = DataValidator.validateTemperature(snapshot.value)
                 if (tempValue == null) {
                     Log.e(TAG, "Invalid temperature data received, ignoring")
+                    SystemLogger.logWarning(LogCategory.TEMPERATURE, "Invalid temperature data received", mapOf(
+                        "raw_value" to (snapshot.value?.toString() ?: "null")
+                    ))
                     return
                 }
                 
                 Log.d(TAG, "Temp Updated: $tempValue°C")
+                SystemLogger.logTemperature(tempValue, "updated", mapOf(
+                    "source" to "firebase",
+                    "valid" to true
+                ))
 
                 // Update text (hidden, for compatibility)
                 binding.tvTemperature.text = String.format("%.1f°C", tempValue)
@@ -476,6 +507,9 @@ class DashboardFragment : Fragment() {
             }
             override fun onCancelled(error: DatabaseError) {
                 Log.e(TAG, "Firebase Temp Read Failed", error.toException())
+                SystemLogger.logError(LogCategory.DATABASE, "Temperature read failed", mapOf(
+                    "error" to error.message
+                ), error.toException())
             }
         }
         database.child("temperature").child("current").addValueEventListener(temperatureListener!!)
@@ -520,12 +554,22 @@ class DashboardFragment : Fragment() {
                 // Validate data before processing
                 if (!DataValidator.validateConveyorData(snapshot)) {
                     Log.e(TAG, "Invalid conveyor data received, ignoring")
+                    SystemLogger.logWarning(LogCategory.DATABASE, "Invalid conveyor data received", mapOf(
+                        "data_snapshot" to (snapshot.value?.toString() ?: "null")
+                    ) as Map<String, Any>)
                     return
                 }
                 
                 val newStatus = DataValidator.getSafeBoolean(snapshot, "status", false)
                 val stopAt = DataValidator.getSafeLong(snapshot, "stop_at", 0L)
                 val isOverride = DataValidator.getSafeBoolean(snapshot, "manual_override", false)
+                
+                SystemLogger.logDeviceControl("conveyor", "status_updated", mapOf(
+                    "status" to newStatus,
+                    "stop_at" to stopAt,
+                    "manual_override" to isOverride,
+                    "source" to "firebase"
+                ))
                 
                 binding.switchManualOverride.setOnCheckedChangeListener(null)
                 binding.switchManualOverride.isChecked = isOverride
@@ -543,10 +587,19 @@ class DashboardFragment : Fragment() {
                     if (isConveyorOn && stopAt > 0 && stopAt <= System.currentTimeMillis()) {
                         updateDeviceStatus("conveyor", false)
                         logActivity("Conveyor", "Timer Expired - Auto Stop")
+                        SystemLogger.logInfo(LogCategory.DEVICE_CONTROL, "Conveyor timer expired - auto stop", mapOf(
+                            "stop_at" to stopAt,
+                            "current_time" to System.currentTimeMillis()
+                        ))
                     }
                 }
             }
-            override fun onCancelled(error: DatabaseError) {}
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Conveyor data read failed", error.toException())
+                SystemLogger.logError(LogCategory.DATABASE, "Conveyor data read failed", mapOf(
+                    "error" to error.message
+                ), error.toException())
+            }
         }
         database.child("conveyor").addValueEventListener(conveyorListener!!)
 
