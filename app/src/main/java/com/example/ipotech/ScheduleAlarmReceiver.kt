@@ -116,9 +116,10 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         // Calculate stop time
         val stopTimeMillis = System.currentTimeMillis() + (durationMinutes * 60 * 1000L)
         
-        // Update Firebase
+        // Update Firebase - reset manual_override when scheduler starts conveyor
         database.child("conveyor/status").setValue(true)
         database.child("conveyor/stop_at").setValue(stopTimeMillis)
+        database.child("conveyor/manual_override").setValue(false)
         
         // Log the activity
         val log = LogEntry(System.currentTimeMillis(), "Conveyor", "$label Schedule Started (Exact Alarm)")
@@ -142,31 +143,16 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
     private fun handleStopConveyor(context: Context, label: String) {
         val database = FirebaseDatabase.getInstance(DB_URL).reference
         
-        // Check for manual override before stopping
-        database.child("conveyor/manual_override").get().addOnSuccessListener { overrideSnapshot ->
-            val isOverride = overrideSnapshot.getValue(Boolean::class.java) ?: false
-            
-            if (isOverride) {
-                Log.d(TAG, "Manual override active, not stopping conveyor")
-                return@addOnSuccessListener
-            }
-            
-            // Stop the conveyor
-            database.child("conveyor/status").setValue(false)
-            database.child("conveyor/stop_at").setValue(0L)
-            
-            // Log the activity
-            val log = LogEntry(System.currentTimeMillis(), "Conveyor", "$label Schedule Finished (Exact Alarm)")
-            database.child("logs").push().setValue(log)
-            
-            Log.d(TAG, "Stopped conveyor for $label")
-            
-        }.addOnFailureListener {
-            Log.e(TAG, "Failed to check override for stop: ${it.message}")
-            // Stop anyway on failure
-            database.child("conveyor/status").setValue(false)
-            database.child("conveyor/stop_at").setValue(0L)
-        }
+        // Stop the conveyor and reset manual_override to allow future scheduled operations
+        database.child("conveyor/status").setValue(false)
+        database.child("conveyor/stop_at").setValue(0L)
+        database.child("conveyor/manual_override").setValue(false)
+        
+        // Log the activity
+        val log = LogEntry(System.currentTimeMillis(), "Conveyor", "$label Schedule Finished (Exact Alarm)")
+        database.child("logs").push().setValue(log)
+        
+        Log.d(TAG, "Stopped conveyor for $label")
     }
     
     private fun rescheduleForTomorrow(context: Context, label: String) {

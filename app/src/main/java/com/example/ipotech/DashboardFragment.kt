@@ -460,6 +460,11 @@ class DashboardFragment : Fragment() {
                     startConveyorTimer(stopAt)
                 } else {
                     stopConveyorTimer()
+                    // If timer expired but status still true, update Firebase to sync state
+                    if (isConveyorOn && stopAt > 0 && stopAt <= System.currentTimeMillis()) {
+                        updateDeviceStatus("conveyor", false)
+                        logActivity("Conveyor", "Timer Expired - Auto Stop")
+                    }
                 }
             }
             override fun onCancelled(error: DatabaseError) {}
