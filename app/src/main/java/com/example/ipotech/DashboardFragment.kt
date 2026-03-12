@@ -19,6 +19,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.view.inputmethod.InputMethodManager
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.NotificationCompat
@@ -33,6 +34,7 @@ import java.util.*
 // SystemLogger import
 import com.example.ipotech.SystemLogger
 import com.example.ipotech.SystemLogger.LogCategory
+import com.example.ipotech.OfflineManager
 
 class DashboardFragment : Fragment() {
 
@@ -216,11 +218,19 @@ class DashboardFragment : Fragment() {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
                 isConnected = snapshot.getValue(Boolean::class.java) ?: false
+                
+                // Update offline manager status
+                OfflineManager.setOnlineStatus(isConnected)
+                
                 updateConnectionUI()
             }
             override fun onCancelled(error: DatabaseError) {
                 if (_binding == null) return
                 isConnected = false
+                
+                // Update offline manager status
+                OfflineManager.setOnlineStatus(false)
+                
                 updateConnectionUI()
             }
         }
@@ -232,14 +242,32 @@ class DashboardFragment : Fragment() {
      */
     private fun updateConnectionUI() {
         if (_binding == null) return
-        binding.offlineIndicator.visibility = if (isConnected) View.GONE else View.VISIBLE
+        
+        val offlineStatus = OfflineManager.getOfflineStatus()
+        val isActuallyOnline = offlineStatus["is_online"] as Boolean
+        
+        binding.offlineIndicator.visibility = if (isActuallyOnline) View.GONE else View.VISIBLE
+        
+        // Update offline indicator text
+        if (!isActuallyOnline) {
+            val queuedOps = offlineStatus["queued_operations"] as Int
+            // Find the TextView inside the offline indicator LinearLayout
+            val textView = binding.offlineIndicator.getChildAt(1) as? TextView
+            textView?.text = "OFFLINE - $queuedOps QUEUED"
+        }
         
         // Change temperature card border to red when offline
-        if (!isConnected) {
+        if (!isActuallyOnline) {
             binding.cardTemperature.strokeColor = ContextCompat.getColor(requireContext(), R.color.industrial_off_active)
         } else {
             binding.cardTemperature.strokeColor = ContextCompat.getColor(requireContext(), R.color.industrial_stroke)
         }
+        
+        // Log connection status changes
+        SystemLogger.logInfo(LogCategory.NETWORK, "Connection status updated", mapOf(
+            "is_online" to isActuallyOnline,
+            "queued_operations" to (offlineStatus["queued_operations"] as Int)
+        ))
     }
 
     private fun setupUIFocusHandling() {
@@ -424,8 +452,8 @@ class DashboardFragment : Fragment() {
             updates["relay_status"] = false
         }
         
-        // Use error recovery for critical device status updates
-        ErrorRecoveryManager.safeWrite(database, device, updates) { success ->
+        // Use offline manager for device status updates
+        OfflineManager.executeWrite(database, device, updates) { success ->
             if (!success) {
                 // Show error to user
                 if (context != null && _binding != null) {
@@ -435,6 +463,9 @@ class DashboardFragment : Fragment() {
                         Toast.LENGTH_LONG
                     ).show()
                 }
+            } else {
+                // Update local cache immediately
+                OfflineManager.cacheDeviceStatus(device, status)
             }
         }
     }
@@ -489,6 +520,9 @@ class DashboardFragment : Fragment() {
                     "source" to "firebase",
                     "valid" to true
                 ))
+                
+                // Cache temperature for offline access
+                OfflineManager.cacheTemperature(tempValue)
 
                 // Update text (hidden, for compatibility)
                 binding.tvTemperature.text = String.format("%.1f°C", tempValue)
@@ -510,6 +544,25 @@ class DashboardFragment : Fragment() {
                 SystemLogger.logError(LogCategory.DATABASE, "Temperature read failed", mapOf(
                     "error" to error.message
                 ), error.toException())
+                
+                // Fallback to cached temperature
+                val cachedTemp = OfflineManager.getCachedTemperature()
+                if (cachedTemp != null) {
+                    val tempValue = cachedTemp["value"] as Double
+                    val cacheAge = cachedTemp["cache_age_ms"] as Long
+                    
+                    Log.d(TAG, "Using cached temperature: $tempValue°C (age: ${cacheAge}ms)")
+                    
+                    // Update UI with cached data
+                    binding.tvTemperature.text = String.format("%.1f°C", tempValue)
+                    binding.temperatureGauge.setTemperature(tempValue.toFloat())
+                    updateTemperatureCardUI(tempValue)
+                    
+                    // Show cache indicator
+                    if (cacheAge > 60000) { // Older than 1 minute
+                        binding.tvTemperature.append(" (CACHED)")
+                    }
+                }
             }
         }
         database.child("temperature").child("current").addValueEventListener(temperatureListener!!)
@@ -563,6 +616,9 @@ class DashboardFragment : Fragment() {
                 val newStatus = DataValidator.getSafeBoolean(snapshot, "status", false)
                 val stopAt = DataValidator.getSafeLong(snapshot, "stop_at", 0L)
                 val isOverride = DataValidator.getSafeBoolean(snapshot, "manual_override", false)
+                
+                // Cache device status for offline access
+                OfflineManager.cacheDeviceStatus("conveyor", newStatus, stopAt, isOverride)
                 
                 SystemLogger.logDeviceControl("conveyor", "status_updated", mapOf(
                     "status" to newStatus,
@@ -877,15 +933,50 @@ class DashboardFragment : Fragment() {
         removeAllListeners()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        
+        // Clean up all Firebase listeners to prevent memory leaks
+        connectionListener?.let { 
+            FirebaseDatabase.getInstance(ConfigManager.getDatabaseUrl())
+                .getReference(".info/connected")
+                .removeEventListener(it) 
+        }
+        heaterSettingsListener?.let { 
+            database.child("heater").removeEventListener(it) 
+        }
+        temperatureListener?.let { 
+            database.child("temperature").child("current").removeEventListener(it) 
+        }
+        heaterStatusListener?.let { 
+            database.child("heater").removeEventListener(it) 
+        }
+        conveyorListener?.let { 
+            database.child("conveyor").removeEventListener(it) 
+        }
+        pulverizerListener?.let { 
+            database.child("pulverizer/status").removeEventListener(it) 
+        }
+        logsListener?.let { 
+            database.child("logs").limitToLast(20).removeEventListener(it) 
+        }
+        
+        // Clear caches
+        OfflineManager.clearCaches()
+        
+        // Cancel timers
+        conveyorTimer?.cancel()
+        heaterTimer?.cancel()
+        
+        Log.d(TAG, "DashboardFragment destroyed - all listeners cleaned up")
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding?.controlHeater?.statusIndicator?.clearAnimation()
         _binding?.controlConveyor?.statusIndicator?.clearAnimation()
         _binding?.controlPulverizer?.statusIndicator?.clearAnimation()
-        // Safety cleanup: remove all listeners and cancel timers
-        removeAllListeners()
         _binding = null
-        conveyorTimer?.cancel()
         heaterTimer?.cancel()
         // Cancel any pending error recovery operations
         ErrorRecoveryManager.cancelAllOperations()

@@ -49,6 +49,9 @@ class MainActivity : AppCompatActivity() {
         // Initialize system logging
         SystemLogger.initialize(this)
         
+        // Initialize offline manager
+        OfflineManager.initialize(this)
+        
         // Validate configuration
         if (!ConfigManager.validateConfiguration()) {
             Log.e("MainActivity", "Invalid configuration detected")
