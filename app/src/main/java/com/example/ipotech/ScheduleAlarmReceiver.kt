@@ -12,10 +12,7 @@ import java.util.*
  */
 class ScheduleAlarmReceiver : BroadcastReceiver() {
     
-    companion object {
-        private const val TAG = "ScheduleAlarmReceiver"
-        private const val DB_URL = "https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/"
-    }
+    private val TAG = "ScheduleAlarmReceiver"
     
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
@@ -39,7 +36,7 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
     }
     
     private fun handleStartConveyor(context: Context, label: String, durationMinutes: Int, pendingResult: android.content.BroadcastReceiver.PendingResult? = null) {
-        val database = FirebaseDatabase.getInstance(DB_URL).reference
+        val database = FirebaseDatabase.getInstance(ConfigManager.getDatabaseUrl()).reference
         
         // Check if schedule is still enabled and not manually overridden
         database.child("schedule/masterEnabled").get().addOnSuccessListener { masterSnapshot ->
@@ -132,8 +129,23 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         durationMinutes: Int,
         pendingResult: android.content.BroadcastReceiver.PendingResult? = null
     ) {
+        // Validate duration
+        if (durationMinutes < 0 || durationMinutes > 480) { // Max 8 hours
+            Log.e(TAG, "Invalid duration: $durationMinutes minutes")
+            pendingResult?.finish()
+            return
+        }
+        
         // Calculate stop time
         val stopTimeMillis = System.currentTimeMillis() + (durationMinutes * 60 * 1000L)
+        
+        // Validate stop time
+        val now = System.currentTimeMillis()
+        if (stopTimeMillis < now || stopTimeMillis > now + 24 * 60 * 60 * 1000L) { // Max 24 hours future
+            Log.e(TAG, "Invalid stop time: $stopTimeMillis")
+            pendingResult?.finish()
+            return
+        }
         
         // Update Firebase - reset manual_override when scheduler starts conveyor
         database.child("conveyor/status").setValue(true)
@@ -163,7 +175,7 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
     }
     
     private fun handleStopConveyor(context: Context, label: String, pendingResult: android.content.BroadcastReceiver.PendingResult) {
-        val database = FirebaseDatabase.getInstance(DB_URL).reference
+        val database = FirebaseDatabase.getInstance(ConfigManager.getDatabaseUrl()).reference
         
         // Stop the conveyor and reset manual_override to allow future scheduled operations
         database.child("conveyor/status").setValue(false)
@@ -182,7 +194,7 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
     
     private fun rescheduleForTomorrow(context: Context, label: String) {
         // Re-read schedule from Firebase and reschedule
-        val database = FirebaseDatabase.getInstance(DB_URL).reference
+        val database = FirebaseDatabase.getInstance(ConfigManager.getDatabaseUrl()).reference
         
         database.child("schedule").get().addOnSuccessListener { snapshot ->
             val isMorning = label.contains("Morning", ignoreCase = true)

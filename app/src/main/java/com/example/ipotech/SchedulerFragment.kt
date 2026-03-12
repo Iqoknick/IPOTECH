@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -37,7 +38,6 @@ class SchedulerFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var database: DatabaseReference
-    private val DB_URL = "https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/"
     
     private val displaySdf = SimpleDateFormat("hh:mm a", Locale.US)
     private val storageSdf = SimpleDateFormat("HH:mm", Locale.US)
@@ -59,8 +59,8 @@ class SchedulerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // FIX: Use explicit European URL
-        database = FirebaseDatabase.getInstance(DB_URL).reference.child("schedule")
+        // Initialize database with secure configuration
+        database = FirebaseDatabase.getInstance(ConfigManager.getDatabaseUrl()).reference.child("schedule")
 
         setupPickers()
         setupMasterSwitch()
@@ -223,10 +223,17 @@ class SchedulerFragment : Fragment() {
     }
 
     private fun setupStatusListener() {
-        FirebaseDatabase.getInstance(DB_URL).reference.child("conveyor/status").addValueEventListener(object : com.google.firebase.database.ValueEventListener {
+        FirebaseDatabase.getInstance(ConfigManager.getDatabaseUrl()).reference.child("conveyor/status").addValueEventListener(object : com.google.firebase.database.ValueEventListener {
             override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
                 if (_binding == null) return
-                val isActive = snapshot.getValue(Boolean::class.java) ?: false
+                
+                // Validate conveyor status data
+                if (!DataValidator.validateConveyorData(snapshot)) {
+                    Log.e("SchedulerFragment", "Invalid conveyor status data received, ignoring")
+                    return
+                }
+                
+                val isActive = DataValidator.getSafeBoolean(snapshot, "status", false)
                 if (isActive) {
                     binding.tvSystemStatus.text = getString(R.string.status_running)
                     binding.cardStatus.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.btn_active_off))

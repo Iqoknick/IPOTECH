@@ -94,7 +94,7 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        database = FirebaseDatabase.getInstance("https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/").reference
+        database = FirebaseDatabase.getInstance(ConfigManager.getDatabaseUrl()).reference
 
         loadSettings()
         setupRecyclerView()
@@ -205,7 +205,7 @@ class DashboardFragment : Fragment() {
      * Setup Firebase connection state listener
      */
     private fun setupConnectionListener() {
-        val connectedRef = FirebaseDatabase.getInstance("https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/")
+        val connectedRef = FirebaseDatabase.getInstance(ConfigManager.getDatabaseUrl())
             .getReference(".info/connected")
         
         connectionListener = object : ValueEventListener {
@@ -266,10 +266,23 @@ class DashboardFragment : Fragment() {
             stopUpdates["heater/stop_at"] = 0L
             stopUpdates["schedule/masterEnabled"] = false
             
-            database.updateChildren(stopUpdates).addOnSuccessListener {
-                if (context != null) {
-                    Toast.makeText(requireContext(), "EMERGENCY STOP ACTIVATED", Toast.LENGTH_LONG).show()
-                    logActivity("SYSTEM", "EMERGENCY STOP ACTIVATED")
+            // Use error recovery for critical emergency stop
+            ErrorRecoveryManager.safeWrite(database, "", stopUpdates) { success ->
+                if (success) {
+                    if (context != null) {
+                        Toast.makeText(requireContext(), "EMERGENCY STOP ACTIVATED", Toast.LENGTH_LONG).show()
+                        logActivity("SYSTEM", "EMERGENCY STOP ACTIVATED")
+                    }
+                } else {
+                    // Emergency stop failed - show critical error
+                    if (context != null && _binding != null) {
+                        Toast.makeText(
+                            requireContext(), 
+                            "EMERGENCY STOP FAILED - USE PHYSICAL BUTTONS!", 
+                            Toast.LENGTH_LONG
+                        ).show()
+                        vibrate(isAlert = true) // Additional vibration for failed stop
+                    }
                 }
             }
         }
@@ -322,8 +335,26 @@ class DashboardFragment : Fragment() {
         
         binding.switchManualOverride.setOnCheckedChangeListener { _, isChecked ->
             vibrate() // Haptic feedback
-            database.child("conveyor").child("manual_override").setValue(isChecked)
-            logActivity("Manual Override", if (isChecked) "ENABLED" else "DISABLED")
+            ErrorRecoveryManager.safeWrite(database, "conveyor/manual_override", isChecked) { success ->
+                if (!success) {
+                    // Show error and revert switch
+                    if (_binding != null) {
+                        binding.switchManualOverride.setOnCheckedChangeListener(null)
+                        binding.switchManualOverride.isChecked = !isChecked
+                        binding.switchManualOverride.setOnCheckedChangeListener { _, newChecked ->
+                            vibrate()
+                            ErrorRecoveryManager.safeWrite(database, "conveyor/manual_override", newChecked) { }
+                        }
+                        Toast.makeText(
+                            requireContext(), 
+                            "Failed to update manual override", 
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    logActivity("Manual Override", if (isChecked) "ENABLED" else "DISABLED")
+                }
+            }
         }
 
         // Update Hysteresis Button
@@ -336,14 +367,24 @@ class DashboardFragment : Fragment() {
             updates["heater/temp_low"] = low
             updates["heater/temp_high"] = high
             
-            database.updateChildren(updates).addOnSuccessListener {
-                if (context != null) {
-                    Toast.makeText(requireContext(), "Hysteresis Updated: $low°C - $high°C", Toast.LENGTH_SHORT).show()
-                    logActivity("Heater", "Settings Updated: $low - $high°C")
-                    hideKeyboardAndClearFocus()
-                    
-                    // Update gauge thresholds
-                    binding.temperatureGauge.setThresholds(low.toFloat(), high.toFloat())
+            ErrorRecoveryManager.safeWrite(database, "heater", updates) { success ->
+                if (success) {
+                    if (context != null) {
+                        Toast.makeText(requireContext(), "Hysteresis Updated: $low°C - $high°C", Toast.LENGTH_SHORT).show()
+                        logActivity("Heater", "Settings Updated: $low - $high°C")
+                        hideKeyboardAndClearFocus()
+                        
+                        // Update gauge thresholds
+                        binding.temperatureGauge.setThresholds(low.toFloat(), high.toFloat())
+                    }
+                } else {
+                    if (context != null && _binding != null) {
+                        Toast.makeText(
+                            requireContext(), 
+                            "Failed to update hysteresis settings", 
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
             }
         }
@@ -358,7 +399,20 @@ class DashboardFragment : Fragment() {
         if (!status && device == "heater") {
             updates["relay_status"] = false
         }
-        database.child(device).updateChildren(updates)
+        
+        // Use error recovery for critical device status updates
+        ErrorRecoveryManager.safeWrite(database, device, updates) { success ->
+            if (!success) {
+                // Show error to user
+                if (context != null && _binding != null) {
+                    Toast.makeText(
+                        requireContext(), 
+                        "Failed to update $device - please retry", 
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
     }
 
     private fun observeFirebase() {
@@ -366,8 +420,15 @@ class DashboardFragment : Fragment() {
         heaterSettingsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
-                targetLow = snapshot.child("temp_low").getValue(Double::class.java) ?: 120.0
-                targetHigh = snapshot.child("temp_high").getValue(Double::class.java) ?: 130.0
+                
+                // Validate heater data
+                if (!DataValidator.validateHeaterData(snapshot)) {
+                    Log.e(TAG, "Invalid heater settings data received, ignoring")
+                    return
+                }
+                
+                targetLow = DataValidator.getSafeDouble(snapshot, "temp_low", 120.0)
+                targetHigh = DataValidator.getSafeDouble(snapshot, "temp_high", 130.0)
                 
                 // Update UI fields if they are not being edited
                 if (!binding.etTempLow.hasFocus()) {
@@ -388,10 +449,12 @@ class DashboardFragment : Fragment() {
         temperatureListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
-                val tempValue = when (val temp = snapshot.value) {
-                    is Double -> temp
-                    is Long -> temp.toDouble()
-                    else -> temp?.toString()?.toDoubleOrNull() ?: 0.0
+                
+                // Validate temperature data
+                val tempValue = DataValidator.validateTemperature(snapshot.value)
+                if (tempValue == null) {
+                    Log.e(TAG, "Invalid temperature data received, ignoring")
+                    return
                 }
                 
                 Log.d(TAG, "Temp Updated: $tempValue°C")
@@ -421,8 +484,16 @@ class DashboardFragment : Fragment() {
         heaterStatusListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
-                isHeaterOn = snapshot.child("status").getValue(Boolean::class.java) ?: false
-                val stopAt = snapshot.child("stop_at").getValue(Long::class.java) ?: 0L
+                
+                // Validate data before processing
+                if (!DataValidator.validateHeaterData(snapshot)) {
+                    Log.e(TAG, "Invalid heater data received, ignoring")
+                    return
+                }
+                
+                val isHeaterOn = DataValidator.getSafeBoolean(snapshot, "status", false)
+                val stopAt = DataValidator.getSafeLong(snapshot, "stop_at", 0L)
+                
                 updateControlUI(binding.controlHeater, isHeaterOn)
 
                 if (isHeaterOn && stopAt > System.currentTimeMillis()) {
@@ -445,14 +516,22 @@ class DashboardFragment : Fragment() {
         conveyorListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
-                val newStatus = snapshot.child("status").getValue(Boolean::class.java) ?: false
-                val stopAt = snapshot.child("stop_at").getValue(Long::class.java) ?: 0L
-                val isOverride = snapshot.child("manual_override").getValue(Boolean::class.java) ?: false
+                
+                // Validate data before processing
+                if (!DataValidator.validateConveyorData(snapshot)) {
+                    Log.e(TAG, "Invalid conveyor data received, ignoring")
+                    return
+                }
+                
+                val newStatus = DataValidator.getSafeBoolean(snapshot, "status", false)
+                val stopAt = DataValidator.getSafeLong(snapshot, "stop_at", 0L)
+                val isOverride = DataValidator.getSafeBoolean(snapshot, "manual_override", false)
+                
                 binding.switchManualOverride.setOnCheckedChangeListener(null)
                 binding.switchManualOverride.isChecked = isOverride
                 binding.switchManualOverride.setOnCheckedChangeListener { _, isChecked ->
-                    database.child("conveyor").child("manual_override").setValue(isChecked)
-                    logActivity("Manual Override", if (isChecked) "ENABLED" else "DISABLED")
+                    vibrate()
+                    ErrorRecoveryManager.safeWrite(database, "conveyor/manual_override", isChecked) { }
                 }
                 isConveyorOn = newStatus
                 updateControlUI(binding.controlConveyor, isConveyorOn)
@@ -474,7 +553,14 @@ class DashboardFragment : Fragment() {
         pulverizerListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
-                isPulverizerOn = snapshot.getValue(Boolean::class.java) ?: false
+                
+                // Validate pulverizer data
+                if (!DataValidator.validatePulverizerData(snapshot)) {
+                    Log.e(TAG, "Invalid pulverizer data received, ignoring")
+                    return
+                }
+                
+                isPulverizerOn = DataValidator.getSafeBoolean(snapshot, "status", false)
                 updateControlUI(binding.controlPulverizer, isPulverizerOn)
             }
             override fun onCancelled(error: DatabaseError) {}
@@ -486,8 +572,13 @@ class DashboardFragment : Fragment() {
                 if (_binding == null) return
                 logList.clear()
                 for (logSnapshot in snapshot.children) {
-                    val log = logSnapshot.getValue(LogEntry::class.java)
-                    if (log != null) logList.add(0, log)
+                    // Validate log entry before adding
+                    if (DataValidator.validateLogEntry(logSnapshot)) {
+                        val log = logSnapshot.getValue(LogEntry::class.java)
+                        if (log != null) logList.add(0, log)
+                    } else {
+                        Log.w(TAG, "Skipping invalid log entry")
+                    }
                 }
                 logAdapter.notifyDataSetChanged()
             }
@@ -576,7 +667,11 @@ class DashboardFragment : Fragment() {
 
     private fun logActivity(action: String, details: String) {
         val log = LogEntry(System.currentTimeMillis(), action, details)
-        database.child("logs").push().setValue(log)
+        ErrorRecoveryManager.safeWrite(database, "logs", log) { success ->
+            if (!success) {
+                Log.w(TAG, "Failed to log activity: $action - $details")
+            }
+        }
     }
     
     /**
@@ -739,5 +834,7 @@ class DashboardFragment : Fragment() {
         _binding = null
         conveyorTimer?.cancel()
         heaterTimer?.cancel()
+        // Cancel any pending error recovery operations
+        ErrorRecoveryManager.cancelAllOperations()
     }
 }
