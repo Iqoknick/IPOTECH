@@ -35,7 +35,8 @@ object AlarmScheduler {
         minute: Int,
         durationMinutes: Int,
         label: String,
-        requestCode: Int
+        requestCode: Int,
+        activeDays: String = "1234567" // Default to all days if not specified
     ) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
@@ -52,7 +53,12 @@ object AlarmScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
-        val triggerTime = getNextTriggerTime(hour, minute)
+        val triggerTime = getNextTriggerTime(hour, minute, activeDays)
+        
+        if (triggerTime <= 0) {
+            Log.w(TAG, "No valid trigger time found for $label with active days: $activeDays")
+            return
+        }
         
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -181,22 +187,35 @@ object AlarmScheduler {
     
     /**
      * Get the next trigger time for a given hour and minute
-     * If the time has passed today, schedule for tomorrow
+     * Only schedules on days specified in activeDays (1=Sunday, 7=Saturday)
+     * Returns 0 if no valid day found
      */
-    private fun getNextTriggerTime(hour: Int, minute: Int): Long {
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, hour)
-            set(Calendar.MINUTE, minute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
+    private fun getNextTriggerTime(hour: Int, minute: Int, activeDays: String): Long {
+        if (activeDays.isEmpty()) return 0
+        
+        val calendar = Calendar.getInstance()
+        val now = calendar.timeInMillis
+        
+        // Check next 14 days to find a valid day
+        for (dayOffset in 0..14) {
+            calendar.timeInMillis = now
+            calendar.add(Calendar.DAY_OF_YEAR, dayOffset)
+            calendar.set(Calendar.HOUR_OF_DAY, hour)
+            calendar.set(Calendar.MINUTE, minute)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            
+            // Skip if time already passed today
+            if (dayOffset == 0 && calendar.timeInMillis <= now) continue
+            
+            // Check if this day is active (1=Sunday, 7=Saturday)
+            val dayCode = (calendar.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY + 1).toString()
+            if (activeDays.contains(dayCode)) {
+                return calendar.timeInMillis
+            }
         }
         
-        // If time has passed today, schedule for tomorrow
-        if (calendar.timeInMillis <= System.currentTimeMillis()) {
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
-        }
-        
-        return calendar.timeInMillis
+        return 0 // No valid day found
     }
     
     /**

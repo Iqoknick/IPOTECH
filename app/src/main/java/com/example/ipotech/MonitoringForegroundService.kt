@@ -19,7 +19,7 @@ import com.example.ipotech.R
 class MonitoringForegroundService : Service() {
     companion object {
         const val CHANNEL_ID = "ipotech_monitoring_channel"
-        const val NOTIFICATION_ID = 1001
+        const val NOTIFICATION_ID = 2001
     }
 
     override fun onCreate() {

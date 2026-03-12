@@ -156,6 +156,8 @@ class SchedulerFragment : Fragment() {
                     val afternoonTime = snapshot.child("afternoon/start").getValue(String::class.java) ?: "13:00"
                     val afternoonDuration = snapshot.child("afternoon/duration").value?.toString()?.toIntOrNull() ?: 0
                     
+                    val activeDays = snapshot.child("activeDays").value?.toString() ?: "1234567"
+                    
                     scheduleExactAlarms(
                         masterEnabled = true,
                         morningEnabled = morningEnabled,
@@ -163,7 +165,8 @@ class SchedulerFragment : Fragment() {
                         morningDuration = morningDuration,
                         afternoonEnabled = afternoonEnabled,
                         afternoonTime = afternoonTime,
-                        afternoonDuration = afternoonDuration
+                        afternoonDuration = afternoonDuration,
+                        activeDays = activeDays
                     )
                 }
                 
@@ -497,7 +500,8 @@ class SchedulerFragment : Fragment() {
                     morningDuration = morningDuration,
                     afternoonEnabled = binding.switchAfternoon.isChecked,
                     afternoonTime = afternoonStartTime,
-                    afternoonDuration = afternoonDuration
+                    afternoonDuration = afternoonDuration,
+                    activeDays = days
                 )
                 
                 // Keep WorkManager as fallback
@@ -517,7 +521,8 @@ class SchedulerFragment : Fragment() {
         morningDuration: Int,
         afternoonEnabled: Boolean,
         afternoonTime: String,
-        afternoonDuration: Int
+        afternoonDuration: Int,
+        activeDays: String
     ) {
         val ctx = context ?: return
         
@@ -560,7 +565,8 @@ class SchedulerFragment : Fragment() {
                     timeParts.second,
                     morningDuration,
                     "Morning",
-                    AlarmScheduler.REQUEST_MORNING_START
+                    AlarmScheduler.REQUEST_MORNING_START,
+                    activeDays
                 )
             }
         }
@@ -575,7 +581,8 @@ class SchedulerFragment : Fragment() {
                     timeParts.second,
                     afternoonDuration,
                     "Evening",
-                    AlarmScheduler.REQUEST_AFTERNOON_START
+                    AlarmScheduler.REQUEST_AFTERNOON_START,
+                    activeDays
                 )
             }
         }

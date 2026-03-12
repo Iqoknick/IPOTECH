@@ -52,6 +52,12 @@ class DashboardFragment : Fragment() {
     
     // Connection state listener
     private var connectionListener: ValueEventListener? = null
+    private var heaterSettingsListener: ValueEventListener? = null
+    private var temperatureListener: ValueEventListener? = null
+    private var heaterStatusListener: ValueEventListener? = null
+    private var conveyorListener: ValueEventListener? = null
+    private var pulverizerListener: ValueEventListener? = null
+    private var logsListener: ValueEventListener? = null
     private var isConnected = true
     
     // Temperature history saving (will be loaded from settings)
@@ -351,7 +357,7 @@ class DashboardFragment : Fragment() {
 
     private fun observeFirebase() {
         // Sync Hysteresis Settings from Firebase
-        database.child("heater").addValueEventListener(object : ValueEventListener {
+        heaterSettingsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
                 targetLow = snapshot.child("temp_low").getValue(Double::class.java) ?: 120.0
@@ -369,10 +375,11 @@ class DashboardFragment : Fragment() {
                 binding.temperatureGauge.setThresholds(targetLow.toFloat(), targetHigh.toFloat())
             }
             override fun onCancelled(error: DatabaseError) {}
-        })
+        }
+        database.child("heater").addValueEventListener(heaterSettingsListener!!)
 
         // Temperature Observer - Update Gauge
-        database.child("temperature").child("current").addValueEventListener(object : ValueEventListener {
+        temperatureListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
                 val tempValue = when (val temp = snapshot.value) {
@@ -401,10 +408,11 @@ class DashboardFragment : Fragment() {
             override fun onCancelled(error: DatabaseError) {
                 Log.e(TAG, "Firebase Temp Read Failed", error.toException())
             }
-        })
+        }
+        database.child("temperature").child("current").addValueEventListener(temperatureListener!!)
 
         // Heater Status Observer
-        database.child("heater").addValueEventListener(object : ValueEventListener {
+        heaterStatusListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
                 isHeaterOn = snapshot.child("status").getValue(Boolean::class.java) ?: false
@@ -424,10 +432,11 @@ class DashboardFragment : Fragment() {
                 }
             }
             override fun onCancelled(error: DatabaseError) {}
-        })
+        }
+        database.child("heater").addValueEventListener(heaterStatusListener!!)
 
         // Conveyor Status Observer
-        database.child("conveyor").addValueEventListener(object : ValueEventListener {
+        conveyorListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
                 val newStatus = snapshot.child("status").getValue(Boolean::class.java) ?: false
@@ -448,18 +457,20 @@ class DashboardFragment : Fragment() {
                 }
             }
             override fun onCancelled(error: DatabaseError) {}
-        })
+        }
+        database.child("conveyor").addValueEventListener(conveyorListener!!)
 
-        database.child("pulverizer/status").addValueEventListener(object : ValueEventListener {
+        pulverizerListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
                 isPulverizerOn = snapshot.getValue(Boolean::class.java) ?: false
                 updateControlUI(binding.controlPulverizer, isPulverizerOn)
             }
             override fun onCancelled(error: DatabaseError) {}
-        })
+        }
+        database.child("pulverizer/status").addValueEventListener(pulverizerListener!!)
 
-        database.child("logs").limitToLast(20).addValueEventListener(object : ValueEventListener {
+        logsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (_binding == null) return
                 logList.clear()
@@ -470,19 +481,20 @@ class DashboardFragment : Fragment() {
                 logAdapter.notifyDataSetChanged()
             }
             override fun onCancelled(error: DatabaseError) {}
-        })
+        }
+        database.child("logs").limitToLast(20).addValueEventListener(logsListener!!)
     }
 
     private fun startHeaterTimer(stopAt: Long) {
         heaterTimer?.cancel()
         heaterTimer = object : CountDownTimer(stopAt - System.currentTimeMillis(), 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                if (_binding == null) return
+                if (_binding == null || !isAdded) return
                 val totalSeconds = millisUntilFinished / 1000
                 binding.tvOvenCountdown.text = String.format("%02d:%02d:%02d", totalSeconds / 3600, (totalSeconds % 3600) / 60, totalSeconds % 60)
             }
             override fun onFinish() {
-                if (_binding != null) {
+                if (_binding != null && isAdded) {
                     binding.tvOvenCountdown.text = "Ready"
                     updateDeviceStatus("heater", false)
                 }
@@ -499,12 +511,12 @@ class DashboardFragment : Fragment() {
         conveyorTimer?.cancel()
         conveyorTimer = object : CountDownTimer(stopAt - System.currentTimeMillis(), 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                if (_binding == null) return
+                if (_binding == null || !isAdded) return
                 val totalSeconds = millisUntilFinished / 1000
                 binding.tvConveyorTimer.text = String.format("%02d:%02d:%02d", totalSeconds / 3600, (totalSeconds % 3600) / 60, totalSeconds % 60)
             }
             override fun onFinish() {
-                if (_binding != null) {
+                if (_binding != null && isAdded) {
                     binding.tvConveyorTimer.text = "00:00:00"
                     updateDeviceStatus("conveyor", false)
                 }
@@ -677,9 +689,33 @@ class DashboardFragment : Fragment() {
         Log.d(TAG, "NOTIFICATION SENT: $title")
     }
 
+    private fun removeAllListeners() {
+        heaterSettingsListener?.let { database.child("heater").removeEventListener(it) }
+        temperatureListener?.let { database.child("temperature").child("current").removeEventListener(it) }
+        heaterStatusListener?.let { database.child("heater").removeEventListener(it) }
+        conveyorListener?.let { database.child("conveyor").removeEventListener(it) }
+        pulverizerListener?.let { database.child("pulverizer/status").removeEventListener(it) }
+        logsListener?.let { database.child("logs").removeEventListener(it) }
+        connectionListener?.let {
+            FirebaseDatabase.getInstance("https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/")
+                .getReference(".info/connected").removeEventListener(it)
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         loadSettings()
+        // Re-register listeners when fragment becomes visible (prevents leaks in back stack)
+        if (::database.isInitialized) {
+            observeFirebase()
+            setupConnectionListener()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Remove listeners when fragment is not visible (prevents memory leaks)
+        removeAllListeners()
     }
 
     override fun onDestroyView() {
@@ -687,9 +723,8 @@ class DashboardFragment : Fragment() {
         _binding?.controlHeater?.statusIndicator?.clearAnimation()
         _binding?.controlConveyor?.statusIndicator?.clearAnimation()
         _binding?.controlPulverizer?.statusIndicator?.clearAnimation()
-        connectionListener?.let {
-            FirebaseDatabase.getInstance("https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/").getReference(".info/connected").removeEventListener(it)
-        }
+        // Safety cleanup: remove all listeners and cancel timers
+        removeAllListeners()
         _binding = null
         conveyorTimer?.cancel()
         heaterTimer?.cancel()

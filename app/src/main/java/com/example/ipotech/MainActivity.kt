@@ -1,13 +1,12 @@
 package com.example.ipotech
 
+import android.content.Intent
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.content.Intent
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.core.view.GravityCompat
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
@@ -15,9 +14,8 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupWithNavController
-import androidx.work.*
 import com.example.ipotech.databinding.ActivityMainBinding
-import java.util.concurrent.TimeUnit
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MainActivity : AppCompatActivity() {
 
@@ -81,16 +79,13 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        // Start Foreground Service for monitoring
+        // Start Foreground Service for monitoring (handles WorkManager internally)
         val monitorIntent = Intent(this, MonitoringForegroundService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(monitorIntent)
         } else {
             startService(monitorIntent)
         }
-
-        // Test Mode: Start background worker immediately without Auth
-        startScheduleWorker()
         
         // Exclude left edge from system back gesture to allow drawer swipe
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -101,15 +96,6 @@ class MainActivity : AppCompatActivity() {
                 binding.drawerLayout.systemGestureExclusionRects = exclusionRects
             }
         }
-    }
-
-    private fun startScheduleWorker() {
-        val workRequest = PeriodicWorkRequestBuilder<ScheduleWorker>(15, TimeUnit.MINUTES).build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "ConveyorScheduleWork",
-            ExistingPeriodicWorkPolicy.KEEP,
-            workRequest
-        )
     }
 
     private fun showExitConfirmDialog() {
