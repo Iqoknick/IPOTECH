@@ -55,6 +55,13 @@ object AlarmScheduler {
         
         val triggerTime = getNextTriggerTime(hour, minute, activeDays)
         
+        Log.d(TAG, "Alarm scheduling details:")
+        Log.d(TAG, "- Label: $label")
+        Log.d(TAG, "- Target time: $hour:$minute")
+        Log.d(TAG, "- Active days: $activeDays")
+        Log.d(TAG, "- Trigger time: ${Date(triggerTime)}")
+        Log.d(TAG, "- Current time: ${Date(System.currentTimeMillis())}")
+        
         if (triggerTime <= 0) {
             Log.w(TAG, "No valid trigger time found for $label with active days: $activeDays")
             return

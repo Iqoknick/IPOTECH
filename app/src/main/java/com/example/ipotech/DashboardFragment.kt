@@ -981,6 +981,46 @@ class DashboardFragment : Fragment() {
         if (::database.isInitialized) {
             observeFirebase()
             setupConnectionListener()
+            // Force refresh conveyor status to sync with actual state
+            database.child("conveyor").get().addOnSuccessListener { snapshot ->
+                if (_binding == null) return@addOnSuccessListener
+                
+                // Validate conveyor data
+                if (!DataValidator.validateConveyorData(snapshot)) {
+                    Log.e(TAG, "Invalid conveyor data in refresh, ignoring")
+                    return@addOnSuccessListener
+                }
+                
+                val newStatus = DataValidator.getSafeBoolean(snapshot, "status", false)
+                val stopAt = DataValidator.getSafeLong(snapshot, "stop_at", 0L)
+                val isOverride = DataValidator.getSafeBoolean(snapshot, "manual_override", false)
+                
+                Log.d(TAG, "Force refresh conveyor - status: $newStatus, stopAt: $stopAt, override: $isOverride")
+                
+                // Update local state
+                isConveyorOn = newStatus
+                updateControlUI(binding.controlConveyor, isConveyorOn)
+                
+                // Update manual override switch
+                binding.switchManualOverride.setOnCheckedChangeListener(null)
+                binding.switchManualOverride.isChecked = isOverride
+                binding.switchManualOverride.setOnCheckedChangeListener { _, isChecked ->
+                    vibrate()
+                    // Log immediately - don't worry about distinguishing user vs Firebase for now
+                    logActivity("Manual Override", if (isChecked) "ENABLED" else "DISABLED")
+                    Log.d(TAG, "Manual override logged: ${if (isChecked) "ENABLED" else "DISABLED"}")
+                    ErrorRecoveryManager.safeWrite(database, "conveyor/manual_override", isChecked) { }
+                }
+                
+                // Handle timer if needed
+                if (isConveyorOn && stopAt > System.currentTimeMillis()) {
+                    startConveyorTimer(stopAt)
+                } else {
+                    stopConveyorTimer()
+                }
+            }.addOnFailureListener { error ->
+                Log.e(TAG, "Failed to refresh conveyor status: ${error.message}")
+            }
         }
     }
 
