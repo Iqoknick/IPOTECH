@@ -1,0 +1,36 @@
+IPOTECH ESP32-S3 Configuration Notes
+=====================================
+
+1. Replace these values in the Arduino code:
+   - FIREBASE_HOST: "your-project-default-rtdb.firebaseio.com"
+   - FIREBASE_API_KEY: "your-web-api-key" 
+   - WIFI_SSID: "YourWiFiSSID"
+   - WIFI_PASSWORD: "YourWiFiPassword"
+
+2. Get Firebase Credentials:
+   - Firebase Console → Realtime Database → Data → URL
+   - Project Settings → Service Accounts → Database Secrets → Web API Key
+
+3. Hardware Wiring:
+   ESP32-S3 GPIO → Component
+   GPIO 1       → Conveyor Relay
+   GPIO 2       → Pulverizer Relay  
+   GPIO 3       → Heater Relay
+   GPIO 4       → DHT22 Temperature Sensor
+   GPIO 5       → Emergency Stop Button
+   3V3           → Sensor Power
+   GND           → Common Ground
+
+4. ESP32-S3 Advantages:
+   - External antenna support (better range)
+   - Dual-core processing (faster response)
+   - More GPIO pins (45 vs 36)
+   - Better WiFi power (19.5dBm)
+   - Industrial temperature range (-40°C to 125°C)
+
+5. Upload Steps:
+   - Select "ESP32-S3 Dev Module" in Arduino IDE
+   - Connect ESP32-S3 to computer
+   - Select correct COM port
+   - Upload code
+   - Monitor Serial Output (115200 baud)
