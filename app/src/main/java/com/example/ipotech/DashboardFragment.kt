@@ -482,6 +482,9 @@ class DashboardFragment : Fragment() {
         updates["status"] = status
         updates["stop_at"] = 0L 
         
+        // Add remote_control path for ESP32 communication
+        updates["remote_control"] = status
+        
         // NOTE: relay_status is now handled by the ESP32 locally to prevent flickering/loops
         if (!status && device == "heater") {
             updates["relay_status"] = false
