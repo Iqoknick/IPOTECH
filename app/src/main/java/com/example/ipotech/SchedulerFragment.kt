@@ -18,9 +18,10 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import com.example.ipotech.databinding.FragmentSchedulerBinding
+import com.example.ipotech.DataValidator
+import com.example.ipotech.ConfigManager
+import com.example.ipotech.AlarmScheduler
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.timepicker.MaterialTimePicker
@@ -232,7 +233,7 @@ class SchedulerFragment : Fragment() {
                     return
                 }
                 
-                val isActive = DataValidator.getSafeBoolean(snapshot, "status", false)
+                val isActive = snapshot.getValue(Boolean::class.java) ?: false
                 if (isActive) {
                     binding.tvSystemStatus.text = getString(R.string.status_running)
                     binding.cardStatus.setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.btn_active_off))
