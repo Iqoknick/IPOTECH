@@ -114,6 +114,27 @@ void readSensors() {
         Serial.print("°C, Humidity: ");
         Serial.print(currentHumidity);
         Serial.println("%");
+        
+        // Update LCD
+        static unsigned long lastLCDUpdate = 0;
+        if(millis() - lastLCDUpdate > 2000){
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print("TEMP: ");
+            lcd.print(currentTemperature);
+            lcd.setCursor(0,1);
+            lcd.print("OVEN:");
+            lcd.print(ovenMasterStatus ? "RUN":"OFF");
+            lcd.setCursor(0,2);
+            lcd.print("CNV:");
+            lcd.print(conveyorState ? "ON":"OFF");
+            lcd.print(" PLV:");
+            lcd.print(grinderState ? "ON":"OFF");
+            lastLCDUpdate = millis();
+        }
+        
+        // Handle Firebase commands
+        handleFirebaseCommands();
     } else {
         Serial.println("Failed to read from DHT sensor!");
     }

@@ -1,0 +1,49 @@
+{
+  "conveyor": {
+    "manual_override": false,
+    "status": false,
+    "stop_at": 0
+  },
+  "grinder": {
+    "status": false
+  },
+  "heater": {
+    "relay_status": false,
+    "status": false,
+    "stop_at": 0,
+    "temp_high": 130,
+    "temp_low": 120
+  },
+  "logs": {
+    "last_action": "",
+    "timestamp": 0
+  },
+  "pulverizer": {
+    "status": false
+  },
+  "schedule": {
+    "activeDays": "1234567",
+    "afternoon": {
+      "duration": 0,
+      "enabled": false,
+      "start": "17:00"
+    },
+    "endDate": "---",
+    "lastModified": 0,
+    "masterEnabled": false,
+    "morning": {
+      "duration": 0,
+      "enabled": false,
+      "start": "08:00"
+    },
+    "startDate": "---"
+  },
+  "temperature": {
+    "current": 0
+  },
+  "timer": {
+    "remaining": 0,
+    "duration": 0,
+    "start_time": 0
+  }
+}
