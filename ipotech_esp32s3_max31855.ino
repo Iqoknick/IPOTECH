@@ -1,4 +1,4 @@
-#include <max6675.h>
+#include <Adafruit_MAX31855.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <Firebase_ESP_Client.h>
@@ -27,8 +27,8 @@ const int BTN_CONVEYOR  = 14;
 // ===== LCD =====
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
-// ===== MAX6675 =====
-MAX6675 thermocouple(thermoSCK, thermoCS, thermoSO);
+// ===== MAX31855 =====
+Adafruit_MAX31855 thermocouple(thermoSCK, thermoCS, thermoSO);
 
 // ===== WIFI =====
 const char* ssid = "TP-Link_2C1F";
@@ -164,7 +164,6 @@ void loop() {
   static unsigned long lastTempRead = 0;
 
   if(millis() - lastTempRead > 1000){
-
     float val = thermocouple.readCelsius();
 
     if(isnan(val) || val <= 0 || val > 300){
