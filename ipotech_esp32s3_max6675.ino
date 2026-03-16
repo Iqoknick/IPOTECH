@@ -196,6 +196,7 @@ void loop() {
   static unsigned long lastBtnStart = 0;
   static unsigned long lastBtnGrinder = 0;
   static unsigned long lastBtnConveyor = 0;
+  static unsigned long lastBtnHeater = 0;
 
   if(digitalRead(BTN_START) == LOW && millis()-lastBtnStart > debounceDelay){
 
@@ -208,6 +209,17 @@ void loop() {
     }
 
     lastBtnStart = millis();
+  }
+
+  if(digitalRead(BTN_START) == LOW && millis() - lastBtnHeater > debounceDelay){
+    ovenMasterStatus = !ovenMasterStatus;
+    lastBtnHeater = millis();
+    digitalWrite(SSR_OVEN, ovenMasterStatus ? HIGH : LOW);
+    
+    if(Firebase.ready()){
+      Firebase.RTDB.setBool(&fb_do, "/heater/status", ovenMasterStatus);
+      Firebase.RTDB.setBool(&fb_do, "/heater/relay", ovenMasterStatus);
+    }
   }
 
   if(digitalRead(BTN_GRINDER) == LOW && millis()-lastBtnGrinder > debounceDelay){
