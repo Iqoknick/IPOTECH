@@ -48,6 +48,8 @@ bool relayState = false;
 bool grinderState = false;
 bool conveyorState = false;
 
+bool conveyorManualOverride = false; // Only conveyor has manual override
+
 float currentTemp = 0;
 
 // ===== TEMP CONTROL =====
@@ -60,7 +62,11 @@ const int MAX_SENSOR_ERRORS = 5;
 
 // ===== TIMERS =====
 unsigned long lastFirebaseSync = 0;
-const unsigned long debounceDelay = 500;
+unsigned long lastBtnStart = 0;
+unsigned long lastBtnGrinder = 0;
+unsigned long lastBtnConveyor = 0;
+const unsigned long debounceDelay = 400;
+const unsigned long firebaseInterval = 1000;
 
 // ===== STORAGE =====
 Preferences preferences;
@@ -196,61 +202,74 @@ void loop() {
   static unsigned long lastBtnStart = 0;
   static unsigned long lastBtnGrinder = 0;
   static unsigned long lastBtnConveyor = 0;
-  static unsigned long lastBtnHeater = 0;
 
-  if(digitalRead(BTN_START) == LOW && millis()-lastBtnStart > debounceDelay){
-
+  // HEATER BUTTON: Direct control (like pulverizer)
+  if(digitalRead(BTN_START) == LOW && millis() - lastBtnStart > debounceDelay){
     ovenMasterStatus = !ovenMasterStatus;
-
-    preferences.putBool("ovenState", ovenMasterStatus);
-
-    if(Firebase.ready()){
-      Firebase.RTDB.setBool(&fb_do, "/heater/status", ovenMasterStatus);
-    }
-
     lastBtnStart = millis();
-  }
-
-  if(digitalRead(BTN_START) == LOW && millis() - lastBtnHeater > debounceDelay){
-    ovenMasterStatus = !ovenMasterStatus;
-    lastBtnHeater = millis();
     digitalWrite(SSR_OVEN, ovenMasterStatus ? HIGH : LOW);
+    
+    preferences.putBool("ovenState", ovenMasterStatus);
     
     if(Firebase.ready()){
       Firebase.RTDB.setBool(&fb_do, "/heater/status", ovenMasterStatus);
-      Firebase.RTDB.setBool(&fb_do, "/heater/relay", ovenMasterStatus);
+      Firebase.RTDB.setBool(&fb_do, "/heater/relay_status", ovenMasterStatus);
     }
   }
 
-  if(digitalRead(BTN_GRINDER) == LOW && millis()-lastBtnGrinder > debounceDelay){
+  if(digitalRead(BTN_GRINDER) == LOW && millis() - lastBtnGrinder > debounceDelay){
 
     grinderState = !grinderState;
+    lastBtnGrinder = millis();
 
     digitalWrite(SSR_GRINDER, grinderState ? SSR_ON : SSR_OFF);
 
     if(Firebase.ready()){
       Firebase.RTDB.setBool(&fb_do, "/pulverizer/status", grinderState);
+      Firebase.RTDB.setBool(&fb_do, "/pulverizer/relay_status", grinderState);
     }
-
-    lastBtnGrinder = millis();
   }
 
-  if(digitalRead(BTN_CONVEYOR) == LOW && millis()-lastBtnConveyor > debounceDelay){
-
-    conveyorState = !conveyorState;
-
-    digitalWrite(SSR_CONVEYOR, conveyorState ? SSR_ON : SSR_OFF);
-
-    if(Firebase.ready()){
-      Firebase.RTDB.setBool(&fb_do, "/conveyor/status", conveyorState);
-    }
-
+  // CONVEYOR BUTTON: Toggle manual override
+  if(digitalRead(BTN_CONVEYOR) == LOW && millis() - lastBtnConveyor > debounceDelay){
+    conveyorManualOverride = !conveyorManualOverride;
     lastBtnConveyor = millis();
+    
+    // When manual override is turned ON, set conveyor to ON as default
+    if(conveyorManualOverride) {
+      conveyorState = true;
+      digitalWrite(SSR_CONVEYOR, SSR_ON);
+    }
+    
+    if(Firebase.ready()){
+      Firebase.RTDB.setBool(&fb_do, "/conveyor/manual_override", conveyorManualOverride);
+      Firebase.RTDB.setBool(&fb_do, "/conveyor/status", conveyorState);
+      Firebase.RTDB.setBool(&fb_do, "/conveyor/relay_status", conveyorState);
+    }
+  }
+
+  // ===== FIREBASE SYNC =====
+  if(millis() - lastFirebaseSync > firebaseInterval){
+    lastFirebaseSync = millis();
+    
+    if(Firebase.ready()){
+      // Sync temperature
+      Firebase.RTDB.setFloat(&fb_do, "/temperature/current", currentTemp);
+      
+      // Sync heater relay state
+      Firebase.RTDB.setBool(&fb_do, "/heater/relay_status", ovenMasterStatus);
+      
+      // Sync pulverizer relay state
+      Firebase.RTDB.setBool(&fb_do, "/pulverizer/relay_status", grinderState);
+      
+      // Sync conveyor relay state
+      Firebase.RTDB.setBool(&fb_do, "/conveyor/relay_status", conveyorState);
+    }
   }
 
   // ===== FIREBASE COMMAND LISTENER =====
   handleFirebaseCommands();
-
+  
   // ===== LCD =====
   static unsigned long lastLCDUpdate = 0;
 
@@ -258,19 +277,21 @@ void loop() {
 
     lcd.clear();
 
-    lcd.setCursor(0,0);
+    lcd.setCursor(0,1);
     lcd.print("TEMP: ");
     lcd.print(currentTemp);
-
-    lcd.setCursor(0,1);
+    
+    lcd.setCursor(0,2);
     lcd.print("OVEN:");
     lcd.print(ovenMasterStatus ? "RUN":"OFF");
-
-    lcd.setCursor(0,2);
+    
+    lcd.setCursor(0,3);
     lcd.print("CNV:");
     lcd.print(conveyorState ? "ON":"OFF");
-
-    lcd.print(" PLV:");
+    lcd.print(conveyorManualOverride ? "(M)" : "(A)");
+    
+    lcd.setCursor(0,4);
+    lcd.print("PLV:");
     lcd.print(grinderState ? "ON":"OFF");
 
     lastLCDUpdate = millis();
@@ -314,12 +335,12 @@ void handleFirebaseCommands() {
     if(Firebase.RTDB.getBool(&fb_do, "/conveyor/remote_control")) {
       if(fb_do.dataTypeEnum() == firebase_rtdb_data_type_boolean) {
         bool newConveyorStatus = fb_do.to<bool>();
-        if(newConveyorStatus != conveyorState) {
+        if(newConveyorStatus != conveyorState && conveyorManualOverride) {
           conveyorState = newConveyorStatus;
           digitalWrite(SSR_CONVEYOR, conveyorState ? SSR_ON : SSR_OFF);
           Serial.println("Conveyor: " + String(conveyorState ? "ON" : "OFF") + " (Remote Control)");
           
-          // Clear the command
+          // Clear command
           Firebase.RTDB.deleteNode(&fb_do, "/conveyor/remote_control");
         }
       }
