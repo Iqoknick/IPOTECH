@@ -1,7 +1,7 @@
 #include <Adafruit_MAX31855.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
-#include <Firebase_ESP_Client.h>
+#include <FirebaseESP32.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <esp_task_wdt.h>
@@ -36,7 +36,7 @@ const char* password = "23046054";
 
 // ===== FIREBASE =====
 #define FIREBASE_HOST "https://layer-eb465-default-rtdb.europe-west1.firebasedatabase.app/"
-#define FIREBASE_API_KEY "AIzaSyD_ZlLH0tFkZJ0DzXIeGLZP_ZOz3UhLng8"
+#define FIREBASE_API_KEY "GFI2mhoOx6kuKsPvsaJshfNQFRMLwfZRQigGeWiW"
 
 FirebaseData fb_do;
 FirebaseAuth auth;
@@ -146,8 +146,8 @@ void setup() {
   Serial.println("WiFi Connected");
 
   // ===== FIREBASE =====
-  config.host = FIREBASE_HOST;
   config.api_key = FIREBASE_API_KEY;
+  config.database_url = FIREBASE_HOST;
 
   Firebase.begin(&config, &auth);
   Firebase.reconnectWiFi(true);
@@ -211,8 +211,8 @@ void loop() {
     preferences.putBool("ovenState", ovenMasterStatus);
     
     if(Firebase.ready()){
-      Firebase.RTDB.setBool(&fb_do, "/heater/status", ovenMasterStatus);
-      Firebase.RTDB.setBool(&fb_do, "/heater/relay_status", ovenMasterStatus);
+      Firebase.setBool(fb_do, "/heater/status", ovenMasterStatus);
+      Firebase.setBool(fb_do, "/heater/relay_status", ovenMasterStatus);
     }
   }
 
@@ -224,8 +224,8 @@ void loop() {
     digitalWrite(SSR_GRINDER, grinderState ? SSR_ON : SSR_OFF);
 
     if(Firebase.ready()){
-      Firebase.RTDB.setBool(&fb_do, "/pulverizer/status", grinderState);
-      Firebase.RTDB.setBool(&fb_do, "/pulverizer/relay_status", grinderState);
+      Firebase.setBool(fb_do, "/pulverizer/status", grinderState);
+      Firebase.setBool(fb_do, "/pulverizer/relay_status", grinderState);
     }
   }
 
@@ -241,9 +241,9 @@ void loop() {
     }
     
     if(Firebase.ready()){
-      Firebase.RTDB.setBool(&fb_do, "/conveyor/manual_override", conveyorManualOverride);
-      Firebase.RTDB.setBool(&fb_do, "/conveyor/status", conveyorState);
-      Firebase.RTDB.setBool(&fb_do, "/conveyor/relay_status", conveyorState);
+      Firebase.setBool(fb_do, "/conveyor/manual_override", conveyorManualOverride);
+      Firebase.setBool(fb_do, "/conveyor/status", conveyorState);
+      Firebase.setBool(fb_do, "/conveyor/relay_status", conveyorState);
     }
   }
 
@@ -253,16 +253,16 @@ void loop() {
     
     if(Firebase.ready()){
       // Sync temperature
-      Firebase.RTDB.setFloat(&fb_do, "/temperature/current", currentTemp);
+      Firebase.setFloat(fb_do, "/temperature/current", currentTemp);
       
       // Sync heater relay state
-      Firebase.RTDB.setBool(&fb_do, "/heater/relay_status", ovenMasterStatus);
+      Firebase.setBool(fb_do, "/heater/relay_status", ovenMasterStatus);
       
       // Sync pulverizer relay state
-      Firebase.RTDB.setBool(&fb_do, "/pulverizer/relay_status", grinderState);
+      Firebase.setBool(fb_do, "/pulverizer/relay_status", grinderState);
       
       // Sync conveyor relay state
-      Firebase.RTDB.setBool(&fb_do, "/conveyor/relay_status", conveyorState);
+      Firebase.setBool(fb_do, "/conveyor/relay_status", conveyorState);
     }
   }
 
@@ -301,8 +301,8 @@ void handleFirebaseCommands() {
   if(Firebase.ready()) {
     
     // Listen for heater remote control
-    if(Firebase.RTDB.getBool(&fb_do, "/heater/remote_control")) {
-      if(fb_do.dataTypeEnum() == firebase_rtdb_data_type_boolean) {
+    if(Firebase.getBool(fb_do, "/heater/remote_control")) {
+      if(fb_do.dataType() == "boolean") {
         bool newHeaterStatus = fb_do.to<bool>();
         if(newHeaterStatus != ovenMasterStatus) {
           ovenMasterStatus = newHeaterStatus;
@@ -310,14 +310,14 @@ void handleFirebaseCommands() {
           Serial.println("Heater: " + String(ovenMasterStatus ? "ON" : "OFF") + " (Remote Control)");
           
           // Clear the command
-          Firebase.RTDB.deleteNode(&fb_do, "/heater/remote_control");
+          Firebase.deleteNode(fb_do, "/heater/remote_control");
         }
       }
     }
     
     // Listen for grinder remote control
-    if(Firebase.RTDB.getBool(&fb_do, "/pulverizer/remote_control")) {
-      if(fb_do.dataTypeEnum() == firebase_rtdb_data_type_boolean) {
+    if(Firebase.getBool(fb_do, "/pulverizer/remote_control")) {
+      if(fb_do.dataType() == "boolean") {
         bool newGrinderStatus = fb_do.to<bool>();
         if(newGrinderStatus != grinderState) {
           grinderState = newGrinderStatus;
@@ -325,22 +325,22 @@ void handleFirebaseCommands() {
           Serial.println("Grinder: " + String(grinderState ? "ON" : "OFF") + " (Remote Control)");
           
           // Clear the command
-          Firebase.RTDB.deleteNode(&fb_do, "/pulverizer/remote_control");
+          Firebase.deleteNode(fb_do, "/pulverizer/remote_control");
         }
       }
     }
     
     // Listen for conveyor remote control
-    if(Firebase.RTDB.getBool(&fb_do, "/conveyor/remote_control")) {
-      if(fb_do.dataTypeEnum() == firebase_rtdb_data_type_boolean) {
+    if(Firebase.getBool(fb_do, "/conveyor/remote_control")) {
+      if(fb_do.dataType() == "boolean") {
         bool newConveyorStatus = fb_do.to<bool>();
         if(newConveyorStatus != conveyorState && conveyorManualOverride) {
           conveyorState = newConveyorStatus;
           digitalWrite(SSR_CONVEYOR, conveyorState ? SSR_ON : SSR_OFF);
           Serial.println("Conveyor: " + String(conveyorState ? "ON" : "OFF") + " (Remote Control)");
           
-          // Clear command
-          Firebase.RTDB.deleteNode(&fb_do, "/conveyor/remote_control");
+          // Clear the command
+          Firebase.deleteNode(fb_do, "/conveyor/remote_control");
         }
       }
     }
