@@ -78,7 +78,15 @@ The Android application includes:
 
 ## 📸 Project Visuals
 
-<img width="435" height="968" alt="image" src="https://github.com/user-attachments/assets/0323540f-60b3-4dea-b119-ed3e867cf20a" />
+<img width="717" height="1600" alt="WhatsApp Image 2026-06-01 at 17 48 28" src="https://github.com/user-attachments/assets/56ea333d-4e99-41e9-abcf-d195bb1c3bfa" />
+<img width="1080" height="2408" alt="WhatsApp Image 2026-06-01 at 17 48 28 (1)" src="https://github.com/user-attachments/assets/51a6a20e-b1f7-442f-987d-10a0e6d036e2" />
+<img width="717" height="1600" alt="WhatsApp Image 2026-06-01 at 17 48 28 (2)" src="https://github.com/user-attachments/assets/c31e27d5-eb98-4789-9f32-68b472d9518b" />
+<img width="717" height="1600" alt="WhatsApp Image 2026-06-01 at 17 48 28 (3)" src="https://github.com/user-attachments/assets/b532c527-7b05-47fb-ad40-5cf6db00acde" />
+<img width="717" height="1600" alt="WhatsApp Image 2026-06-01 at 17 48 29" src="https://github.com/user-attachments/assets/d8078ccc-9485-4bc4-a8a3-f246763e95f5" />
+
+
+
+
 
 
 ```markdown
