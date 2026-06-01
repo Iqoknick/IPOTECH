@@ -89,6 +89,7 @@ The Android application includes:
 
 
 
-```markdown
-![Wiring Diagram](images/wiring-diagram.png)
-![Android App Screenshot](images/app-screenshot.png)
+
+![Wiring Diagram](<img width="3708" height="3708" alt="Wiring diagram" src="https://github.com/user-attachments/assets/3fd606fc-b7d3-4724-b06d-6c7ba88d2462" />
+)
+
